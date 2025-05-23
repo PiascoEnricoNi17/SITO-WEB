@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="150" height="50" viewBox="0 0 150 50" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background wave pattern -->
+    <path d="M0 30 Q 15 15 30 30 T 60 30 T 90 30 T 120 30 T 150 30" 
+          fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round"/>
+    
+    <!-- LoRa symbol -->
+    <path d="M20 20 L 30 10 L 40 20 L 50 10 L 60 20" 
+          fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round"/>
+    
+    <!-- Air symbol -->
+    <circle cx="80" cy="25" r="5" fill="#4CAF50"/>
+    <circle cx="90" cy="25" r="5" fill="#4CAF50"/>
+    <circle cx="100" cy="25" r="5" fill="#4CAF50"/>
+    
+    <!-- Text -->
+    <text x="10" y="40" font-family="Arial" font-size="20" fill="#4CAF50">
+        LoRaAir
+    </text>
+</svg>

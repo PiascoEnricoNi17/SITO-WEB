@@ -1,0 +1,39 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <img src="/images/logo.svg" alt="LoRaAir Logo" height="40">
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- Tutti gli elementi sempre a destra -->
+            <% if (!isLoggedIn) { %>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Home</a>
+                <a class="nav-link" href="/subscription">Abbonamenti</a>
+                <a class="nav-link" href="/login">Accedi</a>
+                <a class="nav-link" href="/register">Registrati</a>
+            </div>
+            <% } %>
+            
+            <!-- Elementi a destra con Dashboard e Abbonamenti seguiti dal saluto utente -->
+            <% if (isLoggedIn) { %>
+            <div class="navbar-nav ms-auto d-flex align-items-center">
+                <a class="nav-link" href="/dashboard">Dashboard</a>
+                <a class="nav-link" href="/subscription">Abbonamenti</a>
+                
+                <!-- Separatore visivo -->
+                <span class="mx-2 text-white-50">|</span>
+                
+                <!-- Benvenuto utente con icona -->
+                <a href="/account" class="nav-link user-welcome d-flex align-items-center">
+                    <span>Benvenuto, <%= user && (user.name || user.username) ? (user.name || user.username) : 'Utente' %></span>
+                    <i class="fas fa-user-circle ms-2" style="color: white; font-size: 1.2rem;"></i>
+                </a>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</nav>

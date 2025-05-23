@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Il tuo Account - LoRaAir</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --tertiary-color: #FF9800;
+            --text-color: #333;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+        }
+        
+        /* Progress bar in the top */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+            height: 4px;
+            background: transparent;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            width: 0%;
+        }
+        
+        /* Account Header Section */
+        .account-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .account-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="white" fill-opacity="0.05" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            background-repeat: no-repeat;
+            background-position: bottom;
+            background-size: cover;
+            z-index: 0;
+        }
+        
+        .account-header .container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--secondary-color);
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .profile-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .profile-avatar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+            transition: 0.5s;
+            transform: skewX(-25deg);
+        }
+        
+        .profile-avatar:hover::after {
+            left: 100%;
+        }
+        
+        .welcome-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        
+        .subscription-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 1.2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            color: white;
+            border: none;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Badge blu per piano Standard */
+        .subscription-badge.standard {
+            background: white;
+            color: #1976D2;
+            border: 3px solid #1976D2;
+            outline: 1px solid rgba(25, 118, 210, 0.3);
+            outline-offset: -4px;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.2);
+        }
+        
+        /* Badge verde per piano Premium */
+        .subscription-badge.premium {
+            background: white;
+            color: #43A047;
+            border: 3px solid #43A047;
+            outline: 1px solid rgba(67, 160, 71, 0.3);
+            outline-offset: -4px;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+        }
+        
+        /* Badge grigio per piano Base */
+        .subscription-badge.base {
+            background: white;
+            color: #757575;
+            border: 3px solid #757575;
+            outline: 1px solid rgba(117, 117, 117, 0.3);
+            outline-offset: -4px;
+            box-shadow: 0 4px 15px rgba(158, 158, 158, 0.2);
+        }
+        
+        .subscription-badge:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        
+        /* Effetti hover specifici per ciascun badge */
+        .subscription-badge.standard:hover {
+            color: white;
+            background: #1976D2;
+            border-color: #1976D2;
+        }
+        
+        .subscription-badge.premium:hover {
+            color: white;
+            background: #43A047;
+            border-color: #43A047;
+        }
+        
+        .subscription-badge.base:hover {
+            color: white;
+            background: #757575;
+            border-color: #757575;
+        }
+        
+        /* Account Cards */
+        .account-card {
+            background: #ffffff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            position: relative;
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .account-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        /* Rimosso il gradiente animato come richiesto */
+        .card-animated-border {
+            display: none; /* Nascondiamo questo elemento */
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-weight: 700;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+        
+        .card-body {
+            padding: 1.8rem;
+        }
+        
+        .info-row {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .info-label i {
+            margin-right: 0.5rem;
+            color: var(--secondary-color);
+        }
+        
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-color);
+            padding: 0.6rem 1rem;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid var(--secondary-color);
+        }
+        
+        .stats-item {
+            text-align: center;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .stats-item:hover {
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: translateY(-5px);
+        }
+        
+        .stats-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+        
+        .stats-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .action-button {
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            border: none;
+            font-weight: 600;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .action-button i {
+            margin-right: 0.5rem;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        /* Timeline */
+        .timeline {
+            padding: 0 10px;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 1.5rem;
+            border-left: 2px solid var(--border-color);
+            padding-left: 20px;
+            margin-left: 10px;
+        }
+        
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+        
+        .timeline-date {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .timeline-title {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        
+        .timeline-description {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        /* Floating animation */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        /* Timeline compatta */
+        .compact-timeline .timeline-item {
+            padding-bottom: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        .compact-timeline .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+        
+        .compact-timeline .timeline-date {
+            font-size: 0.8rem;
+            display: inline-block;
+            min-width: 70px;
+        }
+        
+        .compact-timeline .timeline-content {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .compact-timeline .timeline-title {
+            display: inline-block;
+            margin-bottom: 0;
+        }
+        
+        .compact-timeline .timeline-item:before {
+            width: 12px;
+            height: 12px;
+            left: -7px;
+            top: 4px;
+        }
+        
+        /* Stile per i dettagli abbonamento */
+        .subscription-details {
+            padding: 5px 0;
+        }
+        
+        .subscription-type, .subscription-limit {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .subscription-type .label, .subscription-limit .label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        
+        .subscription-type .value, .subscription-limit .value {
+            font-weight: 600;
+        }
+        
+        /* Stile per la notifica di aggiornamento piano */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .update-notification {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #ffffff, #f9f9f9);
+            border-left: 4px solid var(--success-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+            padding: 15px;
+            margin-bottom: 15px;
+            animation: slideIn 0.5s forwards;
+            transform-origin: top right;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .notification-hiding {
+            animation: slideOut 0.3s forwards;
+        }
+        
+        @keyframes slideOut {
+            to {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+        }
+        
+        .notification-icon {
+            background: var(--success-color);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .notification-content {
+            flex-grow: 1;
+        }
+        
+        .notification-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: var(--dark-bg);
+        }
+        
+        .notification-message {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .notification-close {
+            background: transparent;
+            border: none;
+            color: #999;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 5px;
+            transition: all 0.2s;
+        }
+        
+        .notification-close:hover {
+            color: var(--danger-color);
+        }
+        
+        .highlight {
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Stili per i badge del piano nell'header */
+        .plan-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(2px);
+            border-width: 1px;
+        }
+        
+        /* Badge blu per piano Standard */
+        .plan-badge.plan-standard {
+            color: #1976D2;
+            border: 2px solid #1976D2;
+        }
+        
+        /* Badge verde per piano Premium */
+        .plan-badge.plan-premium {
+            color: #43A047;
+            border: 2px solid #43A047;
+        }
+        
+        /* Badge grigio per piano Basic */
+        .plan-badge.plan-basic {
+            color: #757575;
+            border: 2px solid #757575;
+        }
+        
+        .plan-badge:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress bar -->    
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <% if (typeof query !== 'undefined' && query.updated === 'true') { %>
+    <div class="notification-container">
+        <div class="update-notification" id="planNotification" data-aos="fade-down" data-aos-duration="800" data-aos-offset="0">
+            <div class="notification-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="notification-content">
+                <div class="notification-title">Piano aggiornato con successo!</div>
+                <div class="notification-message">Il tuo abbonamento è stato aggiornato a <span class="highlight"><%= query.plan %></span>.</div>
+            </div>
+            <button class="notification-close" onclick="document.getElementById('planNotification').classList.add('notification-hiding');"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+    <% } %>
+    
+    <main>
+        <%- include('./partials/nav.ejs', {isLoggedIn: true, user: user}) %>
+        
+        <!-- Account Header -->
+        <section class="account-header" data-aos="fade-down" data-aos-offset="-100">
+            <div class="container text-center">
+                <div class="profile-avatar floating" data-aos="zoom-in" data-aos-delay="200">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h1 class="welcome-text" data-aos="fade-up" data-aos-delay="400">Benvenuto, <%= user.name || user.username %></h1>
+            <p data-aos="fade-up" data-aos-delay="500">Gestisci il tuo account e monitora le tue centraline ambientali</p>
+            <div data-aos="fade-up" data-aos-delay="600">
+                <% if (user.subscription === 'standard') { %>
+                    <span class="plan-badge plan-standard">
+                        PIANO STANDARD
+                    </span>
+                <% } else if (user.subscription === 'Premium' || user.subscription === 'premium') { %>
+                    <span class="plan-badge plan-premium">
+                        PIANO PREMIUM
+                    </span>
+                <% } else { %>
+                    <span class="plan-badge plan-basic">
+                        PIANO BASIC
+                    </span>
+                <% } %>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="row">
+            <!-- Informazioni Account - Full Width -->
+            <div class="col-lg-12">
+                <!-- Informazioni Personali -->
+                <div class="account-card" data-aos="fade-up">
+                    <div class="card-animated-border"></div>
+                    <div class="card-header">
+                        <div class="card-icon"><i class="fas fa-user-circle"></i></div>
+                        <div>Informazioni Personali</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <div class="info-label"><i class="fas fa-user"></i> Username</div>
+                            <div class="info-value"><%= user.username || user.name || 'Non specificato' %></div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label"><i class="fas fa-envelope"></i> Email</div>
+                            <div class="info-value"><%= user.email %></div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label"><i class="fas fa-calendar-alt"></i> Data di registrazione</div>
+                            <div class="info-value">
+                                3 maggio 2025
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button class="action-button" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                                <i class="fas fa-edit"></i> Modifica Profilo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abbonamento -->
+                <div class="account-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="card-animated-border"></div>
+                    <div class="card-header">
+                        <div class="card-icon"><i class="fas fa-crown"></i></div>
+                        <div>Dettagli Abbonamento</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <div class="info-label"><i class="fas fa-tag"></i> Piano attuale</div>
+                            <div class="info-value">
+                                <% if (user.subscription === 'standard') { %>
+                                    Piano Standard
+                                <% } else if (user.subscription === 'Premium' || user.subscription === 'premium') { %>
+                                    Piano Premium
+                                <% } else { %>
+                                    Piano Base
+                                <% } %>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label"><i class="fas fa-clock"></i> Stato</div>
+                            <div class="info-value">Attivo</div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label"><i class="fas fa-wifi"></i> Dispositivi massimi</div>
+                            <div class="info-value">
+                                <% if (user.subscription === 'standard') { %>
+                                    6 dispositivi
+                                <% } else if (user.subscription === 'Premium') { %>
+                                    10 dispositivi
+                                <% } else if (user.subscription === 'Enterprise') { %>
+                                    Illimitati
+                                <% } else { %>
+                                    3 dispositivi
+                                <% } %>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <a href="/subscription" class="action-button">
+                                <i class="fas fa-arrow-up"></i> Passa a un piano superiore
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-5" data-aos="fade-up" data-aos-delay="50" data-aos-offset="-100">
+            <div class="col-12">
+                <div class="account-card">
+                    <div class="card-animated-border"></div>
+                    <div class="card-header">
+                        <div class="card-icon"><i class="fas fa-bolt"></i></div>
+                        <div>Azioni Rapide</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <a href="/dashboard" class="action-button w-100">
+                                    <i class="fas fa-tachometer-alt"></i> Vai alla Dashboard
+                                </a>
+                            </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <a href="/subscription" class="action-button w-100">
+                                    <i class="fas fa-arrow-up"></i> Aggiorna Piano
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="/logout" class="action-button w-100" style="background: linear-gradient(90deg, #dc3545, #fd7e14);">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal per la modifica del profilo -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 15px; overflow: hidden; border: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                <!-- Header della modal con gradiente -->
+                <div class="modal-header" style="background: linear-gradient(135deg, #4CAF50, #2196F3); border: none; color: white;">
+                    <h5 class="modal-title" id="editProfileModalLabel"><i class="fas fa-user-edit me-2"></i>Modifica Profilo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1);"></button>
+                </div>
+                
+                <!-- Form per la modifica dei dati -->
+                <form id="editProfileForm" action="/account/update" method="POST">
+                    <div class="modal-body" style="padding: 20px 30px;">
+                        <!-- Campo Username -->
+                        <div class="mb-4 edit-field">
+                            <label for="username" class="form-label fw-semibold"><i class="fas fa-user me-2"></i>Username</label>
+                            <input type="text" class="form-control" id="username" name="username" value="<%= user.username || user.name || '' %>" required
+                                style="border-radius: 10px; padding: 12px; border: 1px solid #ddd; transition: all 0.3s ease;">
+                        </div>
+                        
+                        <!-- Campo Email -->
+                        <div class="mb-4 edit-field">
+                            <label for="email" class="form-label fw-semibold"><i class="fas fa-envelope me-2"></i>Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="<%= user.email || '' %>" required
+                                style="border-radius: 10px; padding: 12px; border: 1px solid #ddd; transition: all 0.3s ease;">
+                        </div>
+                        
+                        <!-- Campi Password (opzionali) -->
+                        <div class="mb-4 edit-field">
+                            <label for="password" class="form-label fw-semibold"><i class="fas fa-lock me-2"></i>Nuova Password (opzionale)</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Lascia vuoto per non cambiare"
+                                style="border-radius: 10px; padding: 12px; border: 1px solid #ddd; transition: all 0.3s ease;">
+                        </div>
+                        
+                        <div class="mb-4 edit-field">
+                            <label for="confirmPassword" class="form-label fw-semibold"><i class="fas fa-lock me-2"></i>Conferma Nuova Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="Conferma la nuova password"
+                                style="border-radius: 10px; padding: 12px; border: 1px solid #ddd; transition: all 0.3s ease;">
+                        </div>
+                        
+                        <!-- Messaggio di feedback -->
+                        <div class="alert alert-success d-none" id="updateSuccessMessage" role="alert" style="border-radius: 10px;">
+                            <i class="fas fa-check-circle me-2"></i> Profilo aggiornato con successo!
+                        </div>
+                        
+                        <div class="alert alert-danger d-none" id="updateErrorMessage" role="alert" style="border-radius: 10px;">
+                            <i class="fas fa-exclamation-circle me-2"></i> Errore durante l'aggiornamento.
+                        </div>
+                    </div>
+                    
+                    <!-- Footer con pulsanti -->
+                    <div class="modal-footer" style="border: none; padding: 15px 30px 25px;">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 10px; padding: 10px 20px;">
+                            <i class="fas fa-times me-2"></i>Annulla
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="saveProfileBtn" style="border-radius: 10px; padding: 10px 20px; background: linear-gradient(135deg, #4CAF50, #2196F3); border: none; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);">
+                            <i class="fas fa-save me-2"></i>Salva Modifiche
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script>
+        // Inizializza le animazioni AOS con configurazione ottimizzata per rivelare gli elementi rapidamente
+        AOS.init({
+            duration: 600, // Durata ridotta per animazioni più rapide
+            easing: 'ease-out-cubic',
+            once: true,
+            offset: 100, // Valore ridotto per attivare le animazioni quando l'utente è ancora lontano
+            delay: 0 // Nessun ritardo nell'animazione
+        });
+        
+        // Gestione del form di modifica profilo con AJAX
+        document.addEventListener('DOMContentLoaded', function() {
+            const editProfileForm = document.getElementById('editProfileForm');
+            const saveProfileBtn = document.getElementById('saveProfileBtn');
+            const successMessage = document.getElementById('updateSuccessMessage');
+            const errorMessage = document.getElementById('updateErrorMessage');
+            
+            if (editProfileForm) {
+                editProfileForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Cambia stato del pulsante durante l'invio
+                    saveProfileBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Aggiornamento...';
+                    saveProfileBtn.disabled = true;
+                    
+                    // Nascondi eventuali messaggi precedenti
+                    successMessage.classList.add('d-none');
+                    errorMessage.classList.add('d-none');
+                    
+                    // Raccogli i dati del form
+                    const formData = new FormData(editProfileForm);
+                    const formDataObj = {};
+                    formData.forEach((value, key) => {
+                        formDataObj[key] = value;
+                    });
+                    
+                    // Valida password se inserita
+                    if (formDataObj.password && formDataObj.password !== formDataObj.confirmPassword) {
+                        errorMessage.textContent = 'Le password non corrispondono';
+                        errorMessage.classList.remove('d-none');
+                        saveProfileBtn.innerHTML = '<i class="fas fa-save me-2"></i>Salva Modifiche';
+                        saveProfileBtn.disabled = false;
+                        return;
+                    }
+                    
+                    // Invia i dati al server tramite fetch API
+                    fetch('/account/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formDataObj)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Mostra messaggio di successo con animazione
+                            successMessage.innerHTML = `<i class="fas fa-check-circle me-2"></i>${data.message}`;
+                            successMessage.classList.remove('d-none');
+                            
+                            // Aggiorna i dati visualizzati nella pagina senza ricaricarla
+                            const usernameDisplay = document.querySelector('.info-value:nth-child(2)');
+                            const emailDisplay = document.querySelector('.info-value:nth-child(4)');
+                            
+                            if (usernameDisplay) usernameDisplay.textContent = formDataObj.username;
+                            if (emailDisplay) emailDisplay.textContent = formDataObj.email;
+                            
+                            // Chiudi la modal automaticamente dopo un breve ritardo
+                            setTimeout(() => {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
+                                modal.hide();
+                            }, 2000);
+                        } else {
+                            // Mostra messaggio di errore
+                            errorMessage.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${data.message}`;
+                            errorMessage.classList.remove('d-none');
+                        }
+                    })
+                    .catch(error => {
+                        // Gestisci errori di rete
+                        console.error('Errore durante l\'aggiornamento:', error);
+                        errorMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Errore di connessione';
+                        errorMessage.classList.remove('d-none');
+                    })
+                    .finally(() => {
+                        // Ripristina lo stato del pulsante
+                        saveProfileBtn.innerHTML = '<i class="fas fa-save me-2"></i>Salva Modifiche';
+                        saveProfileBtn.disabled = false;
+                    });
+                });
+                
+                // Aggiungi effetti hover ai campi di input
+                const inputFields = document.querySelectorAll('.edit-field input');
+                inputFields.forEach(input => {
+                    input.addEventListener('focus', function() {
+                        this.style.boxShadow = '0 0 0 3px rgba(33, 150, 243, 0.15)';
+                        this.style.borderColor = '#4CAF50';
+                    });
+                    
+                    input.addEventListener('blur', function() {
+                        this.style.boxShadow = 'none';
+                        this.style.borderColor = '#ddd';
+                    });
+                });
+            }
+        });
+        
+        // Progress bar scroll indicator
+        window.onscroll = function() {
+            let winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            let height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            let scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuova Centralina - LoraAir</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Variabili CSS personalizzate per il tema */
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #FF9800;
+            --background-color: #f4f7fa;
+            --card-bg: #ffffff;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            background: #000000;
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            color: white !important;
+        }
+        
+        /* Indicatore di progresso dello scroll */
+        .scroll-progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            z-index: 1000;
+        }
+        
+        .scroll-progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            width: 0;
+            transition: width 0.2s ease;
+        }
+        
+        /* Form container */
+        .form-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .form-title {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.25);
+            border-color: var(--primary-color);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #388e3c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-outline-secondary {
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            color: #555;
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        /* Welcome banner */
+        .welcome-banner {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+        }
+        
+        .welcome-banner .wave {
+            position: absolute;
+            opacity: 0.3;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg"><path fill="white" d="M0,192L40,170.7C80,149,160,107,240,90.7C320,75,400,85,480,112C560,139,640,181,720,176C800,171,880,117,960,101.3C1040,85,1120,107,1200,128C1280,149,1360,171,1400,181.3L1440,192L1440,320L1400,320C1360,320,1280,320,1200,320C1120,320,1040,320,960,320C880,320,800,320,720,320C640,320,560,320,480,320C400,320,320,320,240,320C160,320,80,320,40,320L0,320Z"></path></svg>');
+            background-repeat: repeat-x;
+            animation: wave 15s linear infinite;
+        }
+        
+        @keyframes wave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 1440px; }
+        }
+        
+        /* Animazioni */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <%- include('./partials/nav.ejs', {isLoggedIn: true, user: user || {name: 'Utente'}}) %>
+    
+    <!-- Indicatore di progresso dello scroll -->
+    <div class="scroll-progress-container">
+        <div class="scroll-progress-bar" id="scrollProgressBar"></div>
+    </div>
+
+    <div class="container py-4">
+        <!-- Banner di benvenuto con effetto gradiente e animazione -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="welcome-banner p-4 pt-4 pb-5 rounded shadow-lg mb-4" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%); color: white; position: relative; overflow: hidden; min-height: 150px;">
+                    <div class="wave"></div>
+                    <h2 class="fw-bold">Aggiungi una nuova centralina</h2>
+                    <p class="lead mb-0">Configura una nuova centralina LoraAir per iniziare a monitorare l'ambiente.</p>
+                    <a href="/dashboard" class="btn btn-light mt-3">
+                        <i class="fas fa-arrow-left me-2"></i>Torna alla dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="form-container fade-in">
+                    <!-- Disclaimer -->
+                    <div class="alert alert-info p-4 mb-4" style="background: linear-gradient(to right, #e0f7fa, #b2ebf2); border-left: 5px solid #00acc1; border-radius: 10px;">
+                        <div class="d-flex align-items-start">
+                            <div>
+                                <i class="fas fa-info-circle fa-2x me-3 mt-1" style="color: #00838f;"></i>
+                            </div>
+                            <div>
+                                <h5 class="alert-heading" style="color: #006064; font-weight: 600;">Questa è una demo dimostrativa</h5>
+                                <p style="color: #00838f;">La centralina che stai per aggiungere <strong>non sarà realmente collegata</strong> al sistema in tempo reale. Dopo l'aggiunta, sarà necessario attendere che i nostri tecnici effettuino il collegamento fisico del dispositivo.</p>
+                                <p class="mb-0" style="color: #00838f;">Per richieste di installazione reale, contatta il nostro supporto tecnico.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="form-title"><i class="fas fa-plus-circle me-2"></i>Dati della nuova centralina</h3>
+                    
+                    <form action="/stations/new" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nome della centralina</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Es. Centralina Giardino" required>
+                            <div class="form-text">Assegna un nome univoco per identificare facilmente questa centralina.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Posizione</label>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="Es. Giardino sul retro">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Inserisci una breve descrizione..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='/dashboard'">
+                                <i class="fas fa-times me-2"></i>Annulla
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-2"></i>Crea centralina
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Gestione dell'indicatore di progresso dello scroll
+        window.addEventListener('scroll', function() {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById("scrollProgressBar").style.width = scrolled + "%";
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoRaAir - Monitoraggio Ambientale Avanzato</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --dark-color: #333;
+            --light-color: #f5f5f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            background-color: #fafafa;
+        }
+
+        /* Parallax hero section */
+        .hero {
+            position: relative;
+            color: white;
+            padding: 180px 0 120px;
+            text-align: center;
+            overflow: hidden;
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.8) 0%, rgba(33, 150, 243, 0.8) 100%), url('https://images.unsplash.com/photo-1587574296782-12ab649633a8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1517&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            z-index: -1;
+            transform: translateZ(0);
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            animation: fadeInUp 1s ease-out;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease-out 0.3s;
+            animation-fill-mode: both;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feature-card {
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            height: 100%;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.5s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.2);
+            color: var(--secondary-color);
+        }
+
+        .subscription-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .subscription-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .price {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+        }
+
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-color), #45a049);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+            animation: fadeInUp 1s ease-out 0.6s;
+            animation-fill-mode: both;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.4);
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #45a049, var(--primary-color));
+            z-index: -1;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .cta-button:hover::before {
+            opacity: 1;
+        }
+
+        .stats-wave-container {
+            position: relative;
+            height: 100px;
+            overflow: hidden;
+            margin-top: -50px;
+        }
+        
+        .stats-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: var(--light-color);
+            border-radius: 100% 100% 0 0 / 100px;
+            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .stats {
+            position: relative;
+            background-color: var(--light-color);
+            padding: 60px 0;
+        }
+
+        .stats-card {
+            text-align: center;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+        }
+
+        .stats-card:last-child {
+            border-right: none;
+        }
+
+        .stats-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--dark-color);
+            display: inline-block;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+
+        .stats-label {
+            color: #666;
+        }
+
+        .testimonial {
+            background-color: var(--light-color);
+            padding: 40px 0;
+        }
+
+        .testimonial-card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .testimonial-quote {
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        .testimonial-author {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .faq {
+            padding: 40px 0;
+        }
+
+        .faq-item {
+            margin-bottom: 20px;
+        }
+
+        .faq-question {
+            color: var(--dark-color);
+            font-weight: bold;
+            cursor: pointer;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .faq-answer {
+            padding: 15px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 40px 0;
+        }
+
+        .footer-section {
+            margin-bottom: 30px;
+        }
+
+        .footer-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .footer-link {
+            color: #ccc;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+
+        .social-links {
+            margin-top: 20px;
+        }
+
+        .social-link {
+            color: white;
+            font-size: 1.5rem;
+            margin-right: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .social-link:hover {
+            color: var(--primary-color);
+        }
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 5px;
+            width: 0;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            z-index: 1000;
+            transition: width 0.1s ease;
+        }
+        
+        /* Floating animations */
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0); }
+        }
+        
+        .svg-container {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .floating-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .airplane {
+            animation: airplane-float 8s ease-in-out infinite;
+        }
+        
+        @keyframes airplane-float {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(5px, -5px); }
+            50% { transform: translate(10px, 0); }
+            75% { transform: translate(5px, 5px); }
+            100% { transform: translate(0, 0); }
+        }
+        
+        .sensors circle {
+            animation: pulse 3s ease-in-out 1; /* Esegue l'animazione una sola volta */
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="scroll-indicator" id="scrollIndicator"></div>
+        <%- include('./partials/nav.ejs', {isLoggedIn: isLoggedIn || false, user: user || null}) %>
+
+    <section class="hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6" data-aos="fade-right" data-aos-duration="1000">
+                    <h1 data-aos="fade-up" data-aos-delay="200">LoRaAir - Il tuo compagno di monitoraggio ambientale</h1>
+                    <p class="lead" data-aos="fade-up" data-aos-delay="400">Un sistema intelligente che ti permette di monitorare in tempo reale tutte le condizioni ambientali della tua zona.</p>
+                    <a href="/register" class="btn cta-button" data-aos="fade-up" data-aos-delay="600">Inizia ora</a>
+                </div>
+                <div class="col-lg-6" data-aos="fade-left" data-aos-delay="300">
+                    <div class="svg-container hero-image">
+                        <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Sfondo con onde (richiamo alla trasmissione LoRa) -->
+                            <path d="M0,200 Q150,150 300,200 T600,200" fill="none" stroke="rgba(33, 150, 243, 0.2)" stroke-width="8" />
+                            <path d="M0,220 Q150,170 300,220 T600,220" fill="none" stroke="rgba(33, 150, 243, 0.2)" stroke-width="6" />
+                            <path d="M0,240 Q150,190 300,240 T600,240" fill="none" stroke="rgba(33, 150, 243, 0.2)" stroke-width="4" />
+                            
+                            <!-- Aereo stilizzato verde -->
+                            <g class="airplane" opacity="0.85">
+                                <!-- Corpo aereo -->
+                                <path d="M150,180 L450,180 L500,200 L450,220 L150,220 L100,200 Z" fill="#4CAF50" stroke="#222" stroke-width="1.5" />
+                                
+                                <!-- Ali -->
+                                <path d="M300,180 L350,120 L400,120 L350,180 Z" fill="#388E3C" stroke="#222" stroke-width="1.5" />
+                                <path d="M300,220 L350,280 L400,280 L350,220 Z" fill="#388E3C" stroke="#222" stroke-width="1.5" />
+                                
+                                <!-- Coda -->
+                                <path d="M450,180 L500,150 L510,150 L500,200 L510,250 L500,250 L450,220 Z" fill="#388E3C" stroke="#222" stroke-width="1.5" />
+                                
+                                <!-- Dettagli (finestrini) -->
+                                <circle cx="200" cy="200" r="15" fill="#2196F3" stroke="#222" stroke-width="1" />
+                                <circle cx="250" cy="200" r="15" fill="#2196F3" stroke="#222" stroke-width="1" />
+                                <circle cx="300" cy="200" r="15" fill="#2196F3" stroke="#222" stroke-width="1" />
+                                <circle cx="350" cy="200" r="15" fill="#2196F3" stroke="#222" stroke-width="1" />
+                                
+                                <!-- Scia dell'aereo -->
+                                <path d="M100,200 Q80,200 60,210 Q40,220 20,210" fill="none" stroke="rgba(76, 175, 80, 0.7)" stroke-width="5" stroke-dasharray="10,5" />
+                                <path d="M100,200 Q80,198 60,195 Q40,190 20,200" fill="none" stroke="rgba(76, 175, 80, 0.4)" stroke-width="3" stroke-dasharray="8,4" />
+                                <path d="M100,200 Q80,203 60,220 Q40,230 20,220" fill="none" stroke="rgba(76, 175, 80, 0.5)" stroke-width="4" stroke-dasharray="6,3" />
+                            </g>
+                            
+                            <!-- Sensori ambientali (rappresentazione) -->
+                            <g class="sensors">
+                                <circle cx="480" cy="100" r="20" fill="rgba(255,255,255,0.9)" />
+                                <text x="480" y="105" font-size="16" text-anchor="middle" fill="#4CAF50">CO₂</text>
+                                
+                                <circle cx="530" cy="150" r="20" fill="rgba(255,255,255,0.9)" />
+                                <text x="530" y="155" font-size="16" text-anchor="middle" fill="#4CAF50">O₂</text>
+                                
+                                <circle cx="530" cy="250" r="20" fill="rgba(255,255,255,0.9)" />
+                                <text x="530" y="255" font-size="22" text-anchor="middle" fill="#2196F3">H</text>
+                                
+                                <circle cx="480" cy="300" r="20" fill="rgba(255,255,255,0.9)" />
+                                <text x="480" y="305" font-size="16" text-anchor="middle" fill="#2196F3">T°</text>
+                            </g>
+                            
+                            <!-- Nome prodotto -->
+                            <text x="300" y="70" font-family="Arial" font-size="40" font-weight="bold" text-anchor="middle">
+                                <tspan fill="#4CAF50">LoRa</tspan><tspan fill="#2196F3">Air</tspan>
+                            </text>
+                            <text x="300" y="100" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#1565C0">
+                                Monitoraggio Ambientale Avanzato
+                            </text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features py-5">
+        <div class="container">
+            <h2 class="text-center mb-5" data-aos="fade-up">Le nostre funzionalità</h2>
+            <div class="row g-4">
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="card feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-temperature-high feature-icon"></i>
+                            <h3>Temperatura</h3>
+                            <p>Monitoraggio preciso della temperatura dell'aria</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="card feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-tint feature-icon"></i>
+                            <h3>Umidità</h3>
+                            <p>Monitoraggio dell'umidità dell'aria e del terreno</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="card feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-smog feature-icon"></i>
+                            <h3>Inquinamento</h3>
+                            <p>Monitoraggio della qualità dell'aria</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="400">
+                    <div class="card feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-wind feature-icon"></i>
+                            <h3>Vento</h3>
+                            <p>Monitoraggio della velocità del vento</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="card feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-cloud-rain feature-icon"></i>
+                            <h3>Pioggia</h3>
+                            <p>Monitoraggio della quantità di precipitazioni</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="600">
+                    <div class="card feature-card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-sun feature-icon"></i>
+                            <h3>Luminosità</h3>
+                            <p>Monitoraggio dell'intensità luminosa</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="stats-wave-container">
+        <div class="stats-wave"></div>
+    </div>
+    
+    <section class="stats py-5" data-aos="fade-up">
+        <div class="container">
+            <div class="row g-0">
+                <div class="col-md-3 stats-card" data-aos="fade-up" data-aos-delay="100">
+                    <i class="fas fa-users stats-icon"></i>
+                    <div class="stats-number">1,000+</div>
+                    <div class="stats-label">Clienti soddisfatti</div>
+                </div>
+                <div class="col-md-3 stats-card" data-aos="fade-up" data-aos-delay="200">
+                    <i class="fas fa-map-marked-alt stats-icon"></i>
+                    <div class="stats-number">50+</div>
+                    <div class="stats-label">Città servite</div>
+                </div>
+                <div class="col-md-3 stats-card" data-aos="fade-up" data-aos-delay="300">
+                    <i class="fas fa-star stats-icon"></i>
+                    <div class="stats-number">4.8</div>
+                    <div class="stats-label">Valutazione media</div>
+                </div>
+                <div class="col-md-3 stats-card" data-aos="fade-up" data-aos-delay="400">
+                    <i class="fas fa-award stats-icon"></i>
+                    <div class="stats-number">10+</div>
+                    <div class="stats-label">Premi vinti</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonial py-5" data-aos="fade-up">
+        <div class="container">
+            <h2 class="text-center mb-5" data-aos="fade-up">Cosa dicono i nostri clienti</h2>
+            <div class="row">
+                <div class="col-md-6" data-aos="fade-right" data-aos-delay="100">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote" data-aos="fade-up" data-aos-delay="200">
+                            "Da quando ho installato LoRaAir, posso finalmente monitorare le condizioni ambientali della mia zona in modo preciso e affidabile."
+                        </div>
+                        <div class="testimonial-author" data-aos="fade-up" data-aos-delay="300">
+                            Mario Rossi
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6" data-aos="fade-left" data-aos-delay="100">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote" data-aos="fade-up" data-aos-delay="200">
+                            "Il sistema è molto intuitivo e fornisce dati molto dettagliati. Lo raccomando a chiunque voglia monitorare l'ambiente."
+                        </div>
+                        <div class="testimonial-author" data-aos="fade-up" data-aos-delay="300">
+                            Luca Bianchi
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="faq py-5" data-aos="fade-up">
+        <div class="container">
+            <h2 class="text-center mb-5" data-aos="fade-up">Domande frequenti</h2>
+            <div class="row">
+                <div class="col-md-6" data-aos="fade-right" data-aos-delay="100">
+                    <div class="faq-item">
+                        <div class="faq-question" data-aos="fade-up" data-aos-delay="200">
+                            Come funziona LoRaAir?
+                        </div>
+                        <div class="faq-answer" data-aos="fade-up" data-aos-delay="300">
+                            LoRaAir è un sistema di monitoraggio ambientale che utilizza tecnologia LoRa per raccogliere dati in tempo reale sulle condizioni ambientali.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question" data-aos="fade-up" data-aos-delay="200">
+                            Quali dati posso monitorare?
+                        </div>
+                        <div class="faq-answer" data-aos="fade-up" data-aos-delay="300">
+                            Puoi monitorare temperatura, umidità, qualità dell'aria, velocità del vento, precipitazioni, umidità del terreno, luminosità e indice UV.
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6" data-aos="fade-left" data-aos-delay="100">
+                <div class="col-md-6">
+                    <div class="faq-item">
+                        <div class="faq-question">Quanto costa?</div>
+                        <div class="faq-answer">
+                            Offriamo diversi piani di sottoscrizione per soddisfare ogni esigenza, da soluzioni economiche a opzioni enterprise complete.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question">Come posso iniziare?</div>
+                        <div class="faq-answer">
+                            Registrati sul nostro sito e acquista il tuo dispositivo LoRaAir. Una volta installato, potrai accedere ai dati in tempo reale dalla nostra dashboard.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="footer-section">
+                        <h3 class="footer-title">LoRaAir</h3>
+                        <p>Il tuo compagno di monitoraggio ambientale intelligente.</p>
+                        <div class="social-links">
+                            <a href="https://twitter.com/lorair" class="social-link" target="_blank"><i class="fab fa-twitter"></i></a>
+                            <a href="https://instagram.com/lorair" class="social-link" target="_blank"><i class="fab fa-instagram"></i></a>
+                            <a href="https://facebook.com/lorair" class="social-link" target="_blank"><i class="fab fa-facebook"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="footer-section">
+                        <h3 class="footer-title">Collegamenti veloci</h3>
+                        <a href="/" class="footer-link">Home</a>
+                        <a href="/register" class="footer-link">Registrati</a>
+                        <a href="/login" class="footer-link">Accedi</a>
+                        <a href="#" class="footer-link">FAQ</a>
+                        <a href="#" class="footer-link">Privacy Policy</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="footer-section">
+                        <h3 class="footer-title">Contatti</h3>
+                        <a href="mailto:info@lorair.com" class="footer-link">info@lorair.com</a>
+                        <h4 class="footer-title mt-4">Team</h4>
+                        <p class="footer-link">Enrico Piasco: +39 379 136 6713</p>
+                        <p class="footer-link">Mattia Muratore: +39 389 134 8355</p>
+                        <p class="footer-link">Alessandro Cosciug: +39 375 614 2691</p>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <p class="mb-0">&copy; 2025 LoRaAir. Tutti i diritti riservati.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Initialize AOS animations
+        document.addEventListener('DOMContentLoaded', function() {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: false,
+                mirror: true,
+                offset: 100
+            });
+            
+            // Scroll indicator
+            window.addEventListener('scroll', function() {
+                const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+                const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrolled = (scrollTop / scrollHeight) * 100;
+                document.getElementById('scrollIndicator').style.width = scrolled + '%';
+            });
+            
+            // Add floating animation to images
+            const heroImage = document.querySelector('.hero-image');
+            if (heroImage) {
+                heroImage.classList.add('floating-animation');
+            }
+        });
+    </script>
+</body>
+</html>

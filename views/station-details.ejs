@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettagli Centralina - LoraAir</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --accent-color: #FF9800;
+            --background-color: #f4f7fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --site-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        /* Stile base e moderno - in linea con il sito */
+        body {
+            background-color: var(--background-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            position: relative;
+        }
+        
+        /* Card design - stile LoraAir */
+        .col-md-4 {
+            transition: all 0.3s ease;
+        }
+        
+        .col-md-4:hover {
+            transform: translateY(-5px);
+        }
+        
+        /* Header e navbar estesi */
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand img {
+            transition: transform 0.3s ease;
+        }
+        
+        .navbar-brand:hover img {
+            transform: scale(1.05);
+        }
+        
+        /* Indicatore di progresso dello scroll con gradiente del sito */
+        .scroll-progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            z-index: 1000;
+        }
+        
+        .scroll-progress-bar {
+            height: 100%;
+            background: var(--site-gradient);
+            width: 0;
+            transition: width 0.2s ease;
+        }
+        
+        /* Card con stile LoraAir */
+        .card {
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: none;
+            background: var(--card-bg);
+            position: relative;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Card principale con il gradiente del sito */
+        .gradient-card {
+            background: var(--site-gradient);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Testo con gradiente per i numeri */
+        .gradient-text {
+            background: linear-gradient(135deg, #FF9966, #FF5E62);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        
+        /* Bordo animato con il gradiente caratteristico del sito */
+        .border-gradient {
+            position: relative;
+            border-radius: 15px;
+            padding: 3px;
+            background: var(--site-gradient);
+            background-size: 200% 200%;
+            animation: gradient-shift 4s ease infinite;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+        
+        .border-gradient > .card-header {
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            margin-top: 0;
+            margin-left: 0;
+            margin-right: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .border-gradient > .card-header:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        
+        .border-gradient:hover > .card-header:before {
+            transform: translateX(100%);
+        }
+        
+        .border-gradient > .card-body {
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            background-color: var(--card-bg);
+            margin-bottom: 0;
+            margin-left: 0;
+            margin-right: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .border-gradient:hover > .card-body {
+            background-color: #fafbfc;
+        }
+        
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Animazione di rotazione (usata in altre parti) */
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Animazione di galleggiamento */
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0); }
+        }
+        
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        /* Valori con effetto di aggiornamento */
+        .value-updating {
+            animation: value-flash 1s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
+        @keyframes value-flash {
+            0% { color: var(--text-color); transform: scale(1); }
+            50% { color: var(--accent-color); transform: scale(1.1); }
+            100% { color: var(--text-color); transform: scale(1); }
+        }
+        
+        /* Icone con effetto hover */
+        .card-header i {
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover .card-header i {
+            transform: scale(1.2) rotate(5deg);
+        }
+        
+        /* Badge con lo stile standard del sito */
+        .badge {
+            border-radius: 20px;
+            padding: 6px 10px;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .badge:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Aggiunta classe per i badge con gradiente del sito */
+        .badge-gradient {
+            background: var(--site-gradient);
+            color: white;
+        }
+        
+        /* Indicatore luci colorati */
+        .lux-indicator {
+            letter-spacing: -3px;
+            font-size: 18px;
+            background: linear-gradient(90deg, 
+                rgba(0,0,200,0.5) 0%, 
+                rgba(0,128,255,0.5) 20%, 
+                rgba(0,200,200,0.5) 40%, 
+                rgba(0,200,0,0.5) 60%, 
+                rgba(255,200,0,0.5) 80%, 
+                rgba(255,0,0,0.5) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        /* Badge con transizioni fluide */
+        .badge {
+            transition: all 0.3s ease;
+        }
+        
+        /* Progress bar animate */
+        .progress-bar {
+            transition: width 0.7s ease-in-out;
+        }
+        
+        /* Alert status */
+        #data-status-alert {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Indicatore di progresso dello scroll -->
+    <div class="scroll-progress-container">
+        <div class="scroll-progress-bar" id="scrollProgressBar"></div>
+    </div>
+    
+    <%- include('./partials/nav.ejs', {isLoggedIn: true, user: user || {name: 'Utente'}}) %>
+    
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-broadcast-tower me-2"></i>Dettagli Stazione</h5>
+                    </div>
+                    <div class="card-body">
+                        <h2 class="mb-3"><%= station?.name || 'Centralina' %></h2>
+                        <p class="mb-2"><i class="fas fa-map-marker-alt me-2"></i>
+                           <span id="station-location" style="font-weight: 500; color: #333;">Via Don Carlo Chiavazza 16, Racconigi</span></p>
+                        <p class="mb-0 last-update"><i class="fas fa-clock me-2"></i>
+                           Ultimo aggiornamento: <span id="lastUpdate"><%= 
+                                sensorData?.timestamp ? new Date(sensorData.timestamp).toLocaleString() : 'N/D' 
+                            %></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prima riga di card sensori -->
+        <div class="row">
+            <!-- Temperatura -->
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-temperature-high me-2"></i>Temperatura</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="display-4 gradient-text float" id="temp-value">
+                            <%= sensorData?.temperature?.current ? sensorData.temperature.current.toFixed(1) : '--' %> °C
+                        </h3>
+                        <div class="mt-3 text-muted small"><i class="fas fa-info-circle me-1"></i>Misurazione in tempo reale</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Umidità -->
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Umidità</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="display-4 gradient-text float" id="humidity-value">
+                            <%= sensorData?.humidity?.current ? sensorData.humidity.current.toFixed(1) : '--' %> %
+                        </h3>
+                        <div class="progress mt-3">
+                            <div class="progress-bar bg-primary" id="humidity-bar" role="progressbar" 
+                                style="width: 0%" 
+                                aria-valuenow="<%= sensorData?.humidity?.current || 0 %>" 
+                                aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Qualità Aria -->
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-wind me-2"></i>Qualità Aria</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="display-4 gradient-text float" id="air-quality-value">
+                            <%= sensorData?.airQuality?.current ? sensorData.airQuality.current.toFixed(1) : '--' %> ppm
+                        </h3>
+                        <div id="air-quality-status" class="badge bg-success mt-2">Ottima</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seconda riga di card sensori -->
+        <div class="row">
+            <!-- Pressione -->
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Pressione</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="display-4 gradient-text float" id="pressure-value">
+                            <%= sensorData?.pressure ? sensorData.pressure.toFixed(1) : '--' %> hPa
+                        </h3>
+
+                    </div>
+                </div>
+            </div>
+            
+            <!-- UV -->
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-sun me-2"></i>Indice UV</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="display-4 gradient-text float" id="uv-value">
+                            <%= sensorData?.uv ? sensorData.uv.toFixed(1) : '--' %>
+                        </h3>
+                        <div id="uv-risk" class="badge bg-warning text-dark mt-2">Moderato</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Luminosità -->
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Luminosità</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h3 class="display-4 gradient-text float" id="lux-value">
+                            <%= sensorData?.lux ? sensorData.lux.toFixed(1) : '--' %> lux
+                        </h3>
+                        <div class="mt-2">
+                            <span class="me-2"><i class="fas fa-moon text-secondary"></i></span>
+                            <span class="lux-indicator" id="lux-indicator">●●●●●●●●●●</span>
+                            <span class="ms-2"><i class="fas fa-sun text-warning"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Terza riga di card sensori -->
+        <div class="row">
+            <!-- Pioggia -->
+            <div class="col-md-6 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-cloud-rain me-2"></i>Pioggia</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h3 class="display-4 gradient-text" id="rain-value">
+                            <%= sensorData?.rain ? sensorData.rain.toFixed(1) : '--' %> mm
+                        </h3>
+                        <p class="text-muted mt-2" id="rain-status">
+                            <% if (sensorData?.rain && sensorData.rain > 0) { %>
+                                Precipitazione in corso
+                            <% } else { %>
+                                Nessuna precipitazione
+                            <% } %>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Umidità del Suolo -->
+            <div class="col-md-6 mb-3">
+                <div class="card h-100 border-gradient">
+                    <div class="card-header text-white" style="background: var(--site-gradient);">
+                        <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Umidità Suolo</h5>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h3 class="display-4 gradient-text" id="soil-moisture-value">
+                            <%= sensorData?.soilMoisture ? sensorData.soilMoisture.toFixed(1) : '--' %> %
+                        </h3>
+                        <div class="progress mt-3 w-75">
+                            <div class="progress-bar bg-success" id="soil-moisture-bar" role="progressbar" 
+                                style="width: 0%" 
+                                aria-valuenow="<%= sensorData?.soilMoisture || 0 %>" 
+                                aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts necessari -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Estrazione dell'ID della stazione con maggiore robustezza
+        let STATION_ID = '<%= station._id %>';
+        
+        // Verifica se l'ID è definito correttamente
+        if (!STATION_ID || STATION_ID === 'undefined' || STATION_ID === '') {
+            // Prova a estrarre l'ID dall'URL come fallback
+            const urlParts = window.location.pathname.split('/');
+            const lastPart = urlParts[urlParts.length - 1];
+            
+            if (lastPart && lastPart.length > 0 && lastPart !== 'undefined') {
+                STATION_ID = lastPart;
+            } else {
+                // Se ancora fallisce, usa l'ID noto specifico
+                STATION_ID = '681a1a601e6779a1233b5090';
+            }
+        }
+        
+        // Stato dati per confronto
+        let lastData = {};
+        
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            // Barra di progresso e altre inizializzazioni
+            
+            // Gestione dello scroll per la barra di progresso
+            const scrollProgressBar = document.getElementById('scrollProgressBar');
+            if (scrollProgressBar) {
+                window.addEventListener('scroll', () => {
+                    const scrollTop = window.scrollY;
+                    const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+                    const scrollPercentage = (scrollTop / scrollHeight) * 100;
+                    scrollProgressBar.style.width = `${scrollPercentage}%`;
+                });
+            }
+            
+            // Imposta stato iniziale indicatori
+            updateStatusIndicators();
+            
+            // Aggiornamento dati sensori
+            async function updateSensorData() {
+                if (!STATION_ID) {
+                    console.error('ID stazione non disponibile');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/sensor-data?stationId=${STATION_ID}`);
+                    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                    
+                    const data = await response.json();
+                    
+                    // Aggiorna la posizione se disponibile
+                    if (data.position) {
+                        const locationElement = document.getElementById('station-location');
+                        if (locationElement) {
+                            // Verifica se la posizione è cambiata per applicare l'animazione
+                            const currentPosition = locationElement.textContent.trim();
+                            if (currentPosition !== data.position) {
+                                // Applica animazione di aggiornamento
+                                locationElement.classList.remove('animate__fadeIn');
+                                void locationElement.offsetWidth; // Riavvia l'animazione
+                                locationElement.classList.add('animate__fadeIn');
+                                
+                                // Aggiorna il testo con animazione rapida e fluida
+                                locationElement.textContent = data.position;
+                            }
+                        }
+                    }
+                    
+                    // Aggiorna timestamp
+                    if (data.timestamp) {
+                        const date = new Date(data.timestamp);
+                        const lastUpdateElement = document.getElementById('lastUpdate');
+                        if (lastUpdateElement) {
+                            lastUpdateElement.textContent = date.toLocaleString();
+                        }
+                    }
+                    
+                    // Aggiorna tutti i valori, con animazione solo se cambiati
+                    updateSensorValue('temp-value', data?.temperature?.current, '\u00b0C', lastData?.temperature?.current);
+                    updateSensorValue('humidity-value', data?.humidity?.current, '%', lastData?.humidity?.current);
+                    updateSensorValue('air-quality-value', data?.airQuality?.current, 'ppm', lastData?.airQuality?.current);
+                    updateSensorValue('pressure-value', data?.pressure, 'hPa', lastData?.pressure);
+                    updateSensorValue('uv-value', data?.uv, '', lastData?.uv);
+                    updateSensorValue('lux-value', data?.lux, 'lux', lastData?.lux);
+                    updateSensorValue('rain-value', data?.rain, 'mm', lastData?.rain);
+                    updateSensorValue('soil-moisture-value', data?.soilMoisture, '%', lastData?.soilMoisture);
+                    
+                    // Aggiorna indicatori di stato
+                    if (data.humidity && data.humidity.current !== undefined) {
+                        const humBar = document.getElementById('humidity-bar');
+                        if (humBar) {
+                            humBar.style.width = `${data.humidity.current}%`;
+                            humBar.setAttribute('aria-valuenow', data.humidity.current);
+                        }
+                    }
+                    
+                    if (data.soilMoisture !== undefined) {
+                        const soilBar = document.getElementById('soil-moisture-bar');
+                        if (soilBar) {
+                            soilBar.style.width = `${data.soilMoisture}%`;
+                            soilBar.setAttribute('aria-valuenow', data.soilMoisture);
+                        }
+                    }
+                    
+                    // Aggiorna lux indicator
+                    if (data.lux !== undefined) {
+                        const luxValue = parseFloat(data.lux);
+                        const indicator = document.getElementById('lux-indicator');
+                        if (indicator) {
+                            const numFilled = Math.min(Math.floor(luxValue / 200), 10);
+                            indicator.style.opacity = numFilled > 0 ? 1 : 0.3;
+                        }
+                    }
+                    
+                    // Aggiorna badge stato aria
+                    if (data.airQuality && data.airQuality.current !== undefined) {
+                        const aqValue = parseFloat(data.airQuality.current);
+                        const badge = document.getElementById('air-quality-status');
+                        
+                        if (badge) {
+                            if (aqValue < 50) {
+                                badge.className = 'badge bg-success mt-2';
+                                badge.textContent = 'Eccellente';
+                            } else if (aqValue < 100) {
+                                badge.className = 'badge bg-success mt-2';
+                                badge.textContent = 'Buona';
+                            } else if (aqValue < 200) {
+                                badge.className = 'badge bg-warning text-dark mt-2';
+                                badge.textContent = 'Moderata';
+                            } else if (aqValue < 300) {
+                                badge.className = 'badge bg-danger mt-2';
+                                badge.textContent = 'Scarsa';
+                            } else {
+                                badge.className = 'badge bg-danger mt-2';
+                                badge.textContent = 'Pericolosa';
+                            }
+                        }
+                    }
+                    
+                    // Aggiorna badge uv
+                    if (data.uv !== undefined) {
+                        const uvValue = parseFloat(data.uv);
+                        const badge = document.getElementById('uv-risk');
+                        
+                        if (badge) {
+                            if (uvValue < 3) {
+                                badge.className = 'badge bg-success mt-2';
+                                badge.textContent = 'Basso';
+                            } else if (uvValue < 6) {
+                                badge.className = 'badge bg-warning text-dark mt-2';
+                                badge.textContent = 'Moderato';
+                            } else if (uvValue < 8) {
+                                badge.className = 'badge bg-orange mt-2';
+                                badge.textContent = 'Alto';
+                            } else if (uvValue < 11) {
+                                badge.className = 'badge bg-danger mt-2';
+                                badge.textContent = 'Molto alto';
+                            } else {
+                                badge.className = 'badge bg-dark mt-2';
+                                badge.textContent = 'Estremo';
+                            }
+                        }
+                    }
+                    
+                    // Aggiorna badge pioggia
+                    if (data.rain !== undefined) {
+                        const rainValue = parseFloat(data.rain);
+                        const badge = document.getElementById('rain-status');
+                        
+                        if (badge) {
+                            if (rainValue <= 0.1) {
+                                badge.className = 'badge bg-light text-dark mt-2';
+                                badge.textContent = 'Nessuna precipitazione';
+                            } else if (rainValue < 2.5) {
+                                badge.className = 'badge bg-info text-dark mt-2';
+                                badge.textContent = 'Pioggia leggera';
+                            } else if (rainValue < 10) {
+                                badge.className = 'badge bg-primary mt-2';
+                                badge.textContent = 'Pioggia moderata';
+                            } else if (rainValue < 50) {
+                                badge.className = 'badge bg-primary mt-2';
+                                badge.textContent = 'Pioggia forte';
+                            } else {
+                                badge.className = 'badge bg-danger mt-2';
+                                badge.textContent = 'Pioggia estrema';
+                            }
+                        }
+                    }
+                    
+                    // Nota: il codice per lo stato simulazione è stato rimosso poiché la card è stata eliminata
+                    
+                    // Salva i dati per il prossimo confronto
+                    lastData = JSON.parse(JSON.stringify(data));
+                    
+                } catch (error) {
+                    console.error('Errore durante l\'aggiornamento dei dati:', error);
+                }
+            }
+            
+            // Imposta stato iniziale indicatori
+            function updateStatusIndicators() {
+                // Indice aria
+                const aqValue = document.getElementById('air-quality-value');
+                if (aqValue) {
+                    const text = aqValue.textContent.trim();
+                    if (text && text !== '-- ppm') {
+                        const value = parseFloat(text);
+                        updateAirQualityBadge(value);
+                    }
+                }
+                
+                // Umidità
+                const humValue = document.getElementById('humidity-value');
+                if (humValue) {
+                    const text = humValue.textContent.trim();
+                    if (text && text !== '-- %') {
+                        const value = parseFloat(text);
+                        const bar = document.getElementById('humidity-bar');
+                        if (bar) {
+                            bar.style.width = `${value}%`;
+                            bar.setAttribute('aria-valuenow', value);
+                        }
+                    }
+                }
+                
+                // Umidità suolo
+                const soilValue = document.getElementById('soil-moisture-value');
+                if (soilValue) {
+                    const text = soilValue.textContent.trim();
+                    if (text && text !== '-- %') {
+                        const value = parseFloat(text);
+                        const bar = document.getElementById('soil-moisture-bar');
+                        if (bar) {
+                            bar.style.width = `${value}%`;
+                            bar.setAttribute('aria-valuenow', value);
+                        }
+                    }
+                }
+            }
+            
+            // Funzione per aggiornare il badge della qualità dell'aria
+            function updateAirQualityBadge(value) {
+                const badge = document.getElementById('air-quality-status');
+                if (!badge) return;
+                
+                if (value < 50) {
+                    badge.className = 'badge bg-success mt-2';
+                    badge.textContent = 'Eccellente';
+                } else if (value < 100) {
+                    badge.className = 'badge bg-success mt-2';
+                    badge.textContent = 'Buona';
+                } else if (value < 200) {
+                    badge.className = 'badge bg-warning text-dark mt-2';
+                    badge.textContent = 'Moderata';
+                } else if (value < 300) {
+                    badge.className = 'badge bg-danger mt-2';
+                    badge.textContent = 'Scarsa';
+                } else {
+                    badge.className = 'badge bg-danger mt-2';
+                    badge.textContent = 'Pericolosa';
+                }
+            }
+            
+            // Funzione helper per aggiornare i valori con animazione
+            function updateSensorValue(elementId, value, unit, oldValue) {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                
+                if (value === undefined || value === null) {
+                    element.textContent = `-- ${unit}`;
+                    return;
+                }
+                
+                // Gestisci sia valori diretti che oggetti
+                let actualValue = value;
+                
+                // Converti a numero e formatta
+                const formattedValue = parseFloat(actualValue).toFixed(1);
+                element.textContent = `${formattedValue} ${unit}`;
+                
+                // Aggiungi animazione solo se il valore è cambiato
+                if (oldValue !== undefined && oldValue !== null && parseFloat(oldValue) !== parseFloat(actualValue)) {
+                    element.classList.add('value-updating');
+                    setTimeout(() => element.classList.remove('value-updating'), 1000);
+                }
+            }
+            
+            // Carica dati simulati immediatamente prima di richiederli dal server
+            // Questo assicura che ci siano sempre dati mostrati
+            const simulatedData = {
+                temperature: {
+                    current: 24.5,
+                    unit: '°C',
+                    min: 20.2,
+                    max: 28.7
+                },
+                humidity: {
+                    current: 65.3,
+                    unit: '%',
+                    min: 55.1,
+                    max: 75.8
+                },
+                airQuality: {
+                    current: 85.4,
+                    unit: 'ppm'
+                },
+                pressure: 1013.2,
+                uv: 4.8,
+                lux: 1100.0,
+                soilMoisture: 75.2,
+                rain: 0.0,
+                timestamp: new Date(),
+                isSimulated: true
+            };
+            
+            // Aggiorna i valori con i dati simulati prima di tentare la chiamata al server
+            updateSensorValue('temp-value', simulatedData.temperature.current, '°C');
+            updateSensorValue('humidity-value', simulatedData.humidity.current, '%');
+            updateSensorValue('air-quality-value', simulatedData.airQuality.current, 'ppm');
+            updateSensorValue('pressure-value', simulatedData.pressure, 'hPa');
+            updateSensorValue('uv-value', simulatedData.uv, '');
+            updateSensorValue('lux-value', simulatedData.lux, 'lux');
+            updateSensorValue('soil-moisture-value', simulatedData.soilMoisture, '%');
+            updateSensorValue('rain-value', simulatedData.rain, 'mm');
+            
+            // Aggiorna anche gli indicatori grafici
+            document.getElementById('humidity-bar').style.width = `${simulatedData.humidity.current}%`;
+            document.getElementById('soil-moisture-bar').style.width = `${simulatedData.soilMoisture}%`;
+            
+            // Aggiorna anche i badge e indicatori di stato
+            updateStatusIndicators();
+            
+            // Aggiorna timestamp
+            const lastUpdateElement = document.getElementById('lastUpdate');
+            if (lastUpdateElement) {
+                lastUpdateElement.textContent = simulatedData.timestamp.toLocaleString();
+            }
+            
+            // Tenta di recuperare dati reali e poi ogni 30 secondi
+            updateSensorData();
+            setInterval(updateSensorData, 30000);
+            
+            // Fine inizializzazioni
+        });
+    </script>
+</body>
+</html>
