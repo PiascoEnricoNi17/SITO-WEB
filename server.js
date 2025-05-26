@@ -2,14 +2,15 @@ const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
-const connectDB = require('./config/db'); // Importazione della configurazione DB
-const { User, Device } = require('./models/models'); // Importa i modelli da models.js
-// Collections da utilizzare: solo users e devices
+const connectDB = require('./config/db'); // Ho importato la configurazione DB
+const { User, Device } = require('./models/models'); // Ho importato i modelli da models.js
+// Ho deciso di utilizzare solo le collections users e devices
+require('dotenv').config(); // Carico le variabili d'ambiente
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Inizializza la connessione al database - l'app terminerà se MongoDB non è disponibile
+// Ho inizializzato la connessione al database - ho configurato l'app in modo che termini se MongoDB non è disponibile
 connectDB();
 
 // Middleware
@@ -20,28 +21,30 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static('public'));
 
-// Session configuration - migliorata per persistenza
+// Ho configurato la sessione - l'ho migliorata per la persistenza e la sicurezza
 app.use(session({
-    secret: 'miosupersegretissimo',
-    resave: true,
+    secret: process.env.SESSION_SECRET || 'miosupersegretissimo',
+    resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, // Impostare a true in produzione con HTTPS
-        maxAge: 24 * 60 * 60 * 1000 // Cookie valido per 24 ore
+        secure: process.env.NODE_ENV === 'production', // true in produzione (HTTPS)
+        maxAge: 24 * 60 * 60 * 1000, // Cookie valido per 24 ore
+        httpOnly: true, // Previene l'accesso al cookie tramite JavaScript
+        sameSite: 'strict' // Protegge da attacchi CSRF
     }
 }));
 
-// View engine setup
+// Ho configurato il view engine
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
-// Middleware di autenticazione migliorato
+// Ho creato un middleware di autenticazione migliorato
 function requireAuth(req, res, next) {
   if (!req.session || !req.session.isLoggedIn) {
     return res.redirect('/login');
   }
   
-  // Standardizziamo l'oggetto utente per garantire che tutte le pagine abbiano gli stessi campi
+  // Ho standardizzato l'oggetto utente per garantire che tutte le pagine abbiano gli stessi campi
   if (req.session.user) {
     req.user = {
       _id: req.session.user._id,
@@ -50,117 +53,31 @@ function requireAuth(req, res, next) {
       subscription: req.session.user.subscription || 'Standard'
     };
     
-    // Aggiorniamo anche l'utente nella sessione per mantenere coerenza
+    // Ho aggiornato anche l'utente nella sessione per mantenere coerenza
     req.session.user = req.user;
   } else {
-    // Se manca l'utente nella sessione, reindirizza al login
+    // Ho impostato il reindirizzamento al login se manca l'utente nella sessione
     return res.redirect('/login');
   }
   
   next();
 }
 
-// NUOVE ROTTE PER LE CENTRALINE
+// HO AGGIUNTO NUOVE ROTTE PER LE CENTRALINE
 
-// Visualizzazione dettagli di una centralina
-app.get('/station/:id', requireAuth, async (req, res) => {
-  try {
-    const user = req.user;
-    const stationId = req.params.id;
-    
-    // Se l'ID è un ID di dispositivo esistente, lo gestiamo come tale
-    if (mongoose.Types.ObjectId.isValid(stationId)) {
-      const device = await Device.findOne({ _id: stationId, user: user._id });
-      
-      if (device) {
-        // Ottieni le letture del dispositivo
-        const readings = device.readings || [];
-        const sensorData = readings.length > 0 ? readings[readings.length - 1] : {};
-        
-        // Adatta i dati al nuovo formato
-        const station = {
-          id: device._id,
-          name: device.deviceId || 'Centralina',
-          location: 'Non specificata',
-          status: 'active'
-        };
-        
-        return res.render('station-details', {
-          user,
-          station,
-          sensorData: {
-            temperature: sensorData.temperature,
-            humidity: sensorData.humidity,
-            airQuality: sensorData.gas,
-            uv: sensorData.uv,
-            lux: sensorData.lux,
-            pressure: sensorData.pressure,
-            soilMoisture: sensorData.soilMoisture,
-            rain: sensorData.rain
-          },
-          historicalReadings: readings
-        });
-      }
-    }
-    
-    // Se arrivati qui, o l'ID non è valido o il dispositivo non è stato trovato
-    res.status(404).send('Centralina non trovata');
-    
-  } catch (error) {
-    console.error('Errore nel caricamento dettagli centralina:', error);
-    res.status(500).send('Errore del server');
-  }
-});
+// Ho spostato la route /station/:id in routes.js
+// Ho evitato di implementarla qui per prevenire conflitti
 
-// Form per aggiungere una nuova centralina
+// Ho creato un form per aggiungere una nuova centralina
 app.get('/stations/new', requireAuth, (req, res) => {
   res.render('new-station', {
     user: req.user
   });
 });
 
-// Salvataggio nuova centralina
-app.post('/stations/new', requireAuth, async (req, res) => {
-  try {
-    const { name, location, description } = req.body;
-    const userId = req.user._id;
-    
-    // Crea una nuova centralina basata sul modello esistente
-    // Per compatibilità, anche creare un Device
-    const deviceId = `${name.replace(/\s+/g, '-').toLowerCase()}-${Date.now().toString().slice(-4)}`;
-    
-    const newDevice = new Device({
-      deviceId,
-      user: userId,
-      readings: []
-    });
-    
-    await newDevice.save();
-    
-    // Aggiorna l'utente con il nuovo dispositivo
-    await User.findByIdAndUpdate(userId, {
-      $push: { devices: newDevice._id }
-    });
-    
-    // Crea anche la centralina nel nuovo modello
-    const newStation = new Station({
-      name,
-      userId,
-      location,
-      description,
-      apiKey: generateUniqueApiKey()
-    });
-    
-    await newStation.save();
-    
-    res.redirect('/dashboard');
-  } catch (error) {
-    console.error('Errore nella creazione della centralina:', error);
-    res.status(500).send('Errore del server');
-  }
-});
+// Ho rimosso la vecchia implementazione per evitare conflitti
 
-// Funzione helper per generare una chiave API casuale
+// Ho creato una funzione helper per generare una chiave API casuale
 function generateUniqueApiKey() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -171,7 +88,7 @@ function generateUniqueApiKey() {
   return result;
 }
 
-// Sensor data simulation - Ora utilizzeremo dati reali quando possibile
+// Ho implementato una simulazione dei dati dei sensori - Ora utilizzo dati reali quando possibile
 function generateSensorData() {
     return {
         temperature: Math.random() * 30 + 15,
@@ -181,8 +98,8 @@ function generateSensorData() {
     };
 }
 
-// La funzione requireAuth è già definita in precedenza
-// Non definirla nuovamente per evitare conflitti
+// Ho già definito la funzione requireAuth in precedenza
+// Ho evitato di definirla nuovamente per prevenire conflitti
 
 // Routes
 app.get('/', (req, res) => {
@@ -232,6 +149,14 @@ app.get('/', (req, res) => {
 // Reindirizzamento esplicito da /home alla homepage
 app.get('/home', (req, res) => {
     res.redirect('/');
+});
+
+// Ho aggiunto una route dedicata per la privacy policy (conformità GDPR)
+app.get('/privacy-policy', (req, res) => {
+    res.render('privacy-policy', {
+        isLoggedIn: req.session.isLoggedIn || false,
+        user: req.session.user || null
+    });
 });
 
 // Route per la pagina dei piani di abbonamento
@@ -469,70 +394,37 @@ app.get('/dashboard', requireAuth, async (req, res) => {
         try {
             console.log('Recupero dispositivi con relative posizioni...');
             
-            // Utilizziamo un populate completo per ottenere tutti i campi, incluso position
-            const user = await User.findById(req.session.user._id).populate({
-                path: 'devices',
-                // Assicuriamoci di ottenere tutti i campi delle readings e position
-                populate: {
-                    path: 'readings',
-                    options: { sort: { 'timestamp': 1 } } // Ordina per timestamp crescente
-                }
-            });
+            // Recupera i dispositivi dell'utente con tutti i campi necessari
+            userDevices = await Device.find(
+                { user: req.session.user._id },
+                'deviceId position createdAt readings',
+                { sort: { createdAt: -1 } }
+            ).lean();
             
-            // Tentiamo anche un accesso diretto alla collection devices per assicurarci di recuperare il campo position
-            const deviceCollection = await mongoose.connection.db.collection('devices').find({
-                user: new mongoose.Types.ObjectId(req.session.user._id)
-            }).toArray();
+            console.log(`Trovati ${userDevices.length} dispositivi per l'utente`);
             
-            console.log('Dati dalla collection devices:', deviceCollection.length > 0 ? 'trovati' : 'non trovati');
-            if (deviceCollection.length > 0) {
-                console.log('Campi disponibili nei dispositivi:', Object.keys(deviceCollection[0]).join(', '));
-            }
-            
-            if (user && user.devices && user.devices.length > 0) {
-                userDevices = user.devices;
+            if (userDevices.length > 0) {
                 selectedDevice = userDevices[0]; // Prendi il primo dispositivo come default
                 
-                // Ora arricchiamo i dispositivi con la posizione recuperata direttamente dalla collection
-                if (deviceCollection && deviceCollection.length > 0) {
-                    console.log('Mappatura posizioni dai dati della collection...');
-                    
-                    // Creiamo una mappa di posizioni per id dispositivo per facile lookup
-                    const positionMap = {};
-                    deviceCollection.forEach(device => {
-                        if (device._id && device.position) {
-                            positionMap[device._id.toString()] = device.position;
-                            console.log(`Posizione per dispositivo ${device._id}: ${device.position}`);
-                        }
+                // Log per il debug
+                console.log('Dettagli dispositivo selezionato:', {
+                    id: selectedDevice._id,
+                    deviceId: selectedDevice.deviceId,
+                    position: selectedDevice.position || 'Posizione non specificata',
+                    numReadings: selectedDevice.readings?.length || 0
+                });
+                
+                // Se il dispositivo ha letture, le logghiamo per debug
+                if (selectedDevice.readings?.length > 0) {
+                    console.log('Prima lettura:', {
+                        timestamp: selectedDevice.readings[0].timestamp,
+                        temperature: selectedDevice.readings[0].temperature,
+                        humidity: selectedDevice.readings[0].humidity
                     });
                     
-                    // Applichiamo le posizioni ai dispositivi dell'utente
-                    userDevices.forEach(device => {
-                        const deviceId = device._id.toString();
-                        if (positionMap[deviceId]) {
-                            device.position = positionMap[deviceId];
-                            console.log(`Aggiornata posizione per ${device.deviceId}: ${device.position}`);
-                        }
-                    });
-                }
-                
-                console.log(`Dispositivo selezionato: ${selectedDevice.deviceId}, letture disponibili: ${selectedDevice.readings ? selectedDevice.readings.length : 0}`);
-                
-                // Effettua una query separata per ottenere il dispositivo con tutte le readings
-                // Non c'è bisogno di populate perché le readings sono embedded nel documento
-                const device = await Device.findById(selectedDevice._id).lean();
-                
-                // Log per il debug completo del dispositivo
-                console.log('-------------------------- DATI DISPOSITIVO --------------------------');
-                console.log('Dispositivo recuperato:', device.deviceId);
-                console.log('ID dispositivo:', device._id);
-                console.log('Numero di readings trovate:', device.readings ? device.readings.length : 0);
-                
-                // Se il dispositivo ha letture, utilizzale
-                if (device && device.readings && device.readings.length > 0) {
                     // Log dettagliato di tutte le readings
-                    console.log('-------------------------- DETTAGLIO READINGS --------------------------');
-                    device.readings.forEach((reading, index) => {
+                    console.log('-------------------------- DETTAGLIO READINGS -------------------------');
+                    selectedDevice.readings.forEach((reading, index) => {
                         console.log(`[Reading ${index+1}/${device.readings.length}]`);
                         console.log(`  Timestamp: ${reading.timestamp}`);
                         console.log(`  Temperatura: ${reading.temperature}°C`);
@@ -682,12 +574,12 @@ app.get('/api/sensor-data', async (req, res) => {
         // Parametri per trovare la centralina/dispositivo
         let deviceId = req.query.deviceId || null;
         let stationId = req.query.stationId || null;
-        let sensorData = generateSensorData(); // Default come fallback
+        let sensorData = null; // Non generiamo più dati di default
         
         // Correzione: assicuriamoci che l'ID della stazione sia una stringa valida senza caratteri speciali
         if (stationId) {
             stationId = stationId.trim(); // Rimuovi spazi vuoti
-            if (stationId.includes('"') || stationId.includes('\'')) {
+            if (stationId.includes('"') || stationId.includes("'")) {
                 // Rimuovi eventuali virgolette che potrebbero essere state aggiunte
                 stationId = stationId.replace(/["']/g, '');
             }
@@ -888,24 +780,289 @@ app.get('/api/sensor-data', async (req, res) => {
             }
         }
 
-        // Fallback: dati simulati realistici
+        // Nessun dato di fallback - restituisci valori vuoti
         sensorData = {
-            temperature: 22 + (Math.random() * 2 - 1),  // circa 21-23°C
-            humidity: 65 + (Math.random() * 6 - 3),     // circa 62-68%
-            airQuality: 450 + (Math.random() * 40 - 20), // circa 430-470 ppm
-            uv: 5 + (Math.random() * 2 - 1),           // circa 4-6 UV
-            lux: 1200 + (Math.random() * 400 - 200),    // circa 1000-1400 lux
-            pressure: 1013 + (Math.random() * 2 - 1),   // circa 1012-1014 hPa
-            soilMoisture: 75 + (Math.random() * 2 - 1), // circa 74-76%
-            rain: Math.random() > 0.9 ? Math.random() * 0.5 : 0, // perlopiù 0, raramente fino a 0.5mm
+            temperature: null,
+            humidity: null,
+            airQuality: null,
+            uv: null,
+            lux: null,
+            pressure: null,
+            soilMoisture: null,
+            rain: null,
             timestamp: new Date(),
-            isSimulated: true  // Indicatore che questi sono dati simulati
+            dataNotAvailable: true  // Indicatore che non ci sono dati disponibili
         };
         
         res.json(sensorData);
     } catch (error) {
         console.error('Errore API sensori:', error);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Endpoint per recuperare i dati storici di un dispositivo
+app.get('/api/devices/:id/historical-data', requireAuth, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const userId = req.session.user._id;
+        const sensorType = req.query.sensor || 'all'; // Tipo di sensore specifico o 'all' per tutti
+        
+        // Recupera il dispositivo e verifica che appartenga all'utente
+        const device = await Device.findOne({
+            _id: deviceId,
+            user: userId
+        });
+        
+        if (!device) {
+            return res.status(404).json({ success: false, error: 'Dispositivo non trovato' });
+        }
+        
+        // Limite dei dati da restituire
+        const limit = req.query.limit ? parseInt(req.query.limit) : 30;
+        
+        // Assicurati che ci siano letture valide
+        if (!device.readings || !Array.isArray(device.readings) || device.readings.length === 0) {
+            // Se non ci sono letture, restituisci array vuoti
+            return res.json({
+                success: true,
+                data: {
+                    temperature: { labels: [], values: [] },
+                    humidity: { labels: [], values: [] },
+                    gas: { labels: [], values: [] },
+                    pressure: { labels: [], values: [] },
+                    uv: { labels: [], values: [] },
+                    lux: { labels: [], values: [] },
+                    'soil-moisture': { labels: [], values: [] },
+                    rain: { labels: [], values: [] },
+                    wind: { labels: [], values: [] }
+                }
+            });
+        }
+        
+        // Ordina le letture per timestamp (dalla più vecchia alla più recente)
+        const sortedReadings = [...device.readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        // Escludiamo l'ultimo dato (il più recente) perché già mostrato nel display principale
+        // e prendiamo gli ultimi 'limit' elementi precedenti
+        const historicalReadings = sortedReadings.length > 1 ? sortedReadings.slice(0, -1) : [];
+        
+        // Limita il numero di letture in base al parametro limit
+        const limitedReadings = historicalReadings.slice(-limit);
+        
+        // Crea le etichette dal timestamp (formattate come ora locale)
+        const labels = limitedReadings.map(r => {
+            try {
+                return new Date(r.timestamp).toLocaleTimeString();
+            } catch (e) {
+                return '';
+            }
+        });
+        
+        // Prepara i dati in base al tipo di sensore richiesto
+        let responseData;
+        
+        if (sensorType === 'all') {
+            // Prepara dati per tutti i sensori
+            responseData = {
+                temperature: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.temperature) || null)
+                },
+                humidity: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.humidity) || null)
+                },
+                gas: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.gas) || null)
+                },
+                pressure: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.pressure) || null)
+                },
+                uv: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.uv) || null)
+                },
+                lux: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.lux) || null)
+                },
+                'soil-moisture': {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.soilMoisture) || null)
+                },
+                rain: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.rain) || null)
+                },
+                wind: {
+                    labels: labels,
+                    values: limitedReadings.map(r => parseFloat(r.wind) || null)
+                }
+            };
+        } else {
+            // Prepara dati solo per il sensore specifico richiesto
+            responseData = {
+                labels: labels,
+                values: limitedReadings.map(r => parseFloat(r[sensorType]) || null)
+            };
+        }
+        
+        // Restituisci i dati reali dal database
+        res.json({
+            success: true,
+            data: responseData
+        });
+    } catch (error) {
+        console.error('Errore nel recupero dei dati storici:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Si è verificato un errore durante il recupero dei dati',
+            details: error.message
+        });
+    }
+});
+
+// Funzione helper per generare dati storici simulati con variazioni realistiche
+function generateSimulatedHistoricalData(count, baseReading = null) {
+    // Crea array di timestamp per le ultime 'count' ore, un'ora alla volta
+    const now = new Date();
+    const timestamps = [];
+    for (let i = count - 1; i >= 0; i--) {
+        const timestamp = new Date(now);
+        timestamp.setMinutes(now.getMinutes() - i * 15); // Una lettura ogni 15 minuti
+        timestamps.push(timestamp);
+    }
+    
+    // Formato per le etichette temporali
+    const labels = timestamps.map(t => t.toLocaleTimeString());
+    
+    // Valori base se non ci sono letture
+    const baseValues = {
+        temperature: baseReading?.temperature || 22,
+        humidity: baseReading?.humidity || 50,
+        gas: baseReading?.gas || 400,
+        pressure: baseReading?.pressure || 1013,
+        uv: baseReading?.uv || 3,
+        lux: baseReading?.lux || 5000,
+        soilMoisture: baseReading?.soilMoisture || 40,
+        rain: baseReading?.rain || 0
+    };
+    
+    // Variazioni massime per ogni tipo di sensore (per rendere i grafici più interessanti)
+    const variations = {
+        temperature: 2,    // +/- 2°C
+        humidity: 10,      // +/- 10%
+        gas: 50,           // +/- 50ppm
+        pressure: 5,       // +/- 5hPa
+        uv: 1,             // +/- 1 UV index
+        lux: 1000,         // +/- 1000 lux
+        soilMoisture: 5,   // +/- 5%
+        rain: 1            // +/- 1mm
+    };
+    
+    // Genera dati con tendenze realistiche (non solo variazioni casuali)
+    // Usera un pattern sinusoidale per simulare variazioni naturali
+    const generateTrendedValues = (baseValue, maxVariation, count) => {
+        const values = [];
+        // Genera un offset casuale per il pattern sinusoidale
+        const offset = Math.random() * Math.PI * 2;
+        
+        for (let i = 0; i < count; i++) {
+            // Pattern sinusoidale + un po' di rumore casuale
+            const progress = i / count;
+            const sinValue = Math.sin(progress * Math.PI * 2 + offset);
+            const randomNoise = (Math.random() - 0.5) * 0.5; // Rumore casuale +/- 25% della variazione
+            
+            // Combinazione di pattern + rumore, scalato per la variazione massima
+            const variation = (sinValue * 0.8 + randomNoise * 0.2) * maxVariation;
+            values.push(parseFloat((baseValue + variation).toFixed(1)));
+        }
+        return values;
+    };
+    
+    // Genera dati simulati per tutti i sensori
+    return {
+        temperature: {
+            labels: labels,
+            values: generateTrendedValues(baseValues.temperature, variations.temperature, count)
+        },
+        humidity: {
+            labels: labels,
+            values: generateTrendedValues(baseValues.humidity, variations.humidity, count)
+        },
+        gas: {
+            labels: labels,
+            values: generateTrendedValues(baseValues.gas, variations.gas, count)
+        },
+        pressure: {
+            labels: labels,
+            values: generateTrendedValues(baseValues.pressure, variations.pressure, count)
+        },
+        uv: {
+            labels: labels,
+            values: generateTrendedValues(baseValues.uv, variations.uv, count)
+        },
+        lux: {
+            labels: labels,
+            values: generateTrendedValues(baseValues.lux, variations.lux, count)
+        },
+        'soil-moisture': {
+            labels: labels,
+            values: generateTrendedValues(baseValues.soilMoisture, variations.soilMoisture, count)
+        },
+        rain: {
+            labels: labels,
+            values: generateTrendedValues(baseValues.rain, variations.rain, count)
+        }
+    };
+}
+
+// Endpoint per eliminare un dispositivo
+app.delete('/api/devices/:id', requireAuth, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const userId = req.session.user._id;
+        
+        console.log(`Richiesta eliminazione dispositivo: ${deviceId} da utente: ${userId}`);
+        
+        // Verifica che l'ID sia valido
+        if (!mongoose.Types.ObjectId.isValid(deviceId)) {
+            return res.status(400).json({ success: false, error: 'ID dispositivo non valido' });
+        }
+        
+        // Cerca il dispositivo assicurandosi che appartenga all'utente
+        const device = await Device.findOne({
+            _id: deviceId,
+            user: userId
+        });
+        
+        if (!device) {
+            return res.status(404).json({ success: false, error: 'Dispositivo non trovato' });
+        }
+        
+        // Registra i dettagli del dispositivo prima dell'eliminazione (per debug)
+        console.log(`Eliminazione dispositivo: ${device.deviceId || 'N/A'} (ID: ${device._id})`);
+        
+        // Elimina il dispositivo
+        await Device.deleteOne({ _id: deviceId });
+        
+        console.log(`Dispositivo ${deviceId} eliminato con successo`);
+        
+        // Risposta di successo
+        return res.status(200).json({ 
+            success: true, 
+            message: 'Dispositivo eliminato con successo',
+            deviceId: deviceId
+        });
+    } catch (error) {
+        console.error('Errore nell\'eliminazione del dispositivo:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Si è verificato un errore durante l\'eliminazione del dispositivo' 
+        });
     }
 });
 
@@ -1259,10 +1416,10 @@ app.post('/station/details', (req, res) => {
     console.log('POST /station/details - BODY:', req.body);
     
     try {
-        // Ottieni l'ID della stazione
+        // Ho recuperato l'ID della stazione
         const stationId = req.body.stationId || 'ID non disponibile';
         
-        // Invia solo una pagina completamente bianca con il minimo indispensabile
+        // Ho creato una pagina minimale per il test
         res.setHeader('Content-Type', 'text/html');
         return res.send(`
             <!DOCTYPE html>
@@ -1284,154 +1441,84 @@ app.post('/station/details', (req, res) => {
     }
 });
 
-// [Rimossa la vecchia API per la pagina statica - Ora utilizziamo il rendering EJS diretto]
 
-// Route dinamica per visualizzare i dettagli della centralina
+// Ho implementato una route dinamica per visualizzare i dettagli della centralina
 app.get('/station/:id', requireAuth, async (req, res) => {
-    const stationId = req.params.id;
-    
     try {
-        // Connessione diretta a MongoDB usando il driver nativo
-        const { MongoClient, ObjectId } = require('mongodb');
-        const uri = 'mongodb://localhost:27017';
-        const dbName = 'loraAirDB';
+        const stationId = req.params.id;
+        console.log('=== ACCESSO ALLA PAGINA CENTRALINA ===');
+        console.log('ID richiesto:', stationId);
         
-        const client = new MongoClient(uri, { useUnifiedTopology: true });
-        await client.connect();
-        
-        // Accesso al database e alla collezione
-        const db = client.db(dbName);
-        const devicesCollection = db.collection('devices');
-        
-        // Cerca il dispositivo per ID
-        let deviceData = null;
-        
-        try {
-            // Tento prima con ObjectId
-            deviceData = await devicesCollection.findOne({ _id: new ObjectId(stationId) });
-        } catch (idError) {
-            // Tentativo fallback con deviceId come stringa
-            deviceData = await devicesCollection.findOne({ deviceId: stationId });
-        }
-        
-        // Se il dispositivo non è stato trovato, redirect alla dashboard
-        if (!deviceData) {
-            console.error('⚠️ Dispositivo non trovato in MongoDB');
-            await client.close();
+        // Ho aggiunto un controllo per assicurarmi che l'ID sia valido
+        if (!mongoose.Types.ObjectId.isValid(stationId)) {
+            console.error('⚠️ ID dispositivo non valido');
             return res.redirect('/dashboard');
         }
         
-        // Utilizziamo una posizione fissa per tutti i dettagli della stazione
-        const devicePosition = 'Via Don Carlo Chiavazza 16, Racconigi';
-
+        // Ho recuperato l'ID utente dalla sessione
+        const userId = req.session.user._id;
         
-        // Recupera l'ultima lettura (se disponibile)
-        const lastReading = deviceData.readings && deviceData.readings.length > 0 ?
-            deviceData.readings[deviceData.readings.length - 1] : null;
+        // Ho cercato il dispositivo assicurandomi che appartenga all'utente corrente
+        const device = await Device.findOne({
+            _id: stationId,
+            user: userId
+        });
         
-        console.log('Ultima lettura:', lastReading ? '✅ Disponibile' : '❌ Non disponibile');
-        if (lastReading) {
-            console.log('Campi lettura:', Object.keys(lastReading).join(', '));
+        if (!device) {
+            console.error('⚠️ Dispositivo non trovato');
+            return res.redirect('/dashboard');
         }
         
-        // Preparazione dati completi per il template
-        const stationData = {
-            id: stationId,
-            name: deviceData.deviceId || 'Centralina ' + stationId.substring(0, 5).toUpperCase(),
-            location: devicePosition, // Utilizziamo la posizione recuperata direttamente da MongoDB
-            description: 'Centralina di monitoraggio ambientale',
-            status: deviceData.status || 'active',
-            lastUpdate: lastReading ? new Date(lastReading.timestamp).toISOString() : new Date().toISOString(),
-            // Formatta la data in modo leggibile per l'utente
-            formattedUpdate: lastReading ? new Date(lastReading.timestamp).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Data non disponibile',
-
-            // Utilizziamo i dati reali dei sensori se disponibili
-            readings: {
-                temperature: {
-                    current: lastReading?.temperature || 22.5,
-                    min: lastReading?.temperature ? (lastReading.temperature - 1.5) : 21.0,
-                    max: lastReading?.temperature ? (lastReading.temperature + 1.5) : 24.0,
-                    unit: '°C'
-                },
-                humidity: {
-                    current: lastReading?.humidity || 65.0,
-                    min: lastReading?.humidity ? (lastReading.humidity - 5) : 60.0,
-                    max: lastReading?.humidity ? (lastReading.humidity + 5) : 70.0,
-                    unit: '%'
-                },
-                airQuality: {
-                    current: lastReading?.gas || 420,
-                    min: lastReading?.gas ? (lastReading.gas - 20) : 400,
-                    max: lastReading?.gas ? (lastReading.gas + 30) : 450,
-                    unit: 'ppm'
-                },
-                // Aggiungiamo altri sensori disponibili
-                pressure: {
-                    current: lastReading?.pressure || 1013.25,
-                    min: lastReading?.pressure ? (lastReading.pressure - 10) : 1005,
-                    max: lastReading?.pressure ? (lastReading.pressure + 10) : 1020,
-                    unit: 'hPa'
-                },
-                uv: {
-                    current: lastReading?.uv || 5.2,
-                    min: lastReading?.uv ? (lastReading.uv - 1) : 4.0,
-                    max: lastReading?.uv ? (lastReading.uv + 1) : 6.5,
-                    unit: 'UV'
-                },
-                lux: {
-                    current: lastReading?.lux || 1200,
-                    min: lastReading?.lux ? (lastReading.lux - 200) : 1000,
-                    max: lastReading?.lux ? (lastReading.lux + 200) : 1400,
-                    unit: 'lux'
-                }
-            }
-        };
+        // Log dettagliato del documento
+        console.log('=== DOCUMENTO TROVATO ===');
+        console.log(JSON.stringify({
+            _id: device._id,
+            deviceId: device.deviceId,
+            position: device.position,
+            user: device.user
+        }, null, 2));
         
-        // Log dei dati completi per debug
-        console.log('Dati preparati per il template:', JSON.stringify(stationData, null, 2).substring(0, 300) + '...');
+        // Ottieni le letture del dispositivo
+        const readings = device.readings || [];
+        const sensorData = readings.length > 0 ? readings[readings.length - 1] : {};
         
-        // Chiusura della connessione MongoDB
-        await client.close();
-        console.log('Connessione MongoDB chiusa');
-        
-        // Aggiungiamo la posizione anche all'oggetto lettura per assicurarci che sia disponibile
-        // nei dati visualizzati nella console
-        const sensorDataWithPosition = {
-            ...lastReading || {},
-            position: devicePosition  // Aggiungiamo la posizione ai dati del sensore
-        };
-        
-        // Aggiungiamo la posizione direttamente al documento per aggiornarlo in MongoDB
-        if (!deviceData.position) {
-            try {
-                // Operazione di aggiornamento del documento nella collection
-                await devicesCollection.updateOne(
-                    { _id: deviceData._id },
-                    { $set: { position: devicePosition } }
-                );
-                console.log(`✅ Posizione aggiunta definitivamente al documento nel database: ${devicePosition}`);
-            } catch (err) {
-                console.error('Errore aggiornamento documento:', err);
-            }
-        }
-        
-        console.log('\n\nDATA COMPLETI CON POSIZIONE:', sensorDataWithPosition);
-        
-        // Renderizza il template con i dati recuperati direttamente da MongoDB
-        console.log('Renderizzazione template con dati MongoDB');
         return res.render('station-details', {
-            station: stationData,
-            user: req.session.user || {},
-            sensorData: sensorDataWithPosition
+            user: req.session.user,
+            station: {
+                id: device._id,
+                name: device.deviceId,
+                deviceId: device.deviceId,
+                position: device.position,
+                location: device.position, // Duplico per compatibilità con il template
+                status: 'active'
+            },
+            sensorData: sensorData
         });
     } catch (error) {
         console.error('Errore nella visualizzazione dettagli centralina:', error);
+        return res.redirect('/dashboard');
+    }
+});
+
+// Route temporanea per debug database
+app.get('/debug/device/:id', requireAuth, async (req, res) => {
+    try {
+        const device = await Device.findById(req.params.id);
+        if (!device) {
+            return res.status(404).send('Dispositivo non trovato');
+        }
         
-        // Fallback: rendiamo comunque la pagina con un errore appropriato
-        return res.status(500).render('error', {
-            message: 'Si è verificato un errore durante la visualizzazione dei dettagli della centralina',
-            error: error
+        res.json({
+            id: device._id,
+            deviceId: device.deviceId,
+            user: device.user,
+            location: device.location,
+            position: device.position,
+            allFields: device.toObject()
         });
+    } catch (error) {
+        console.error('Errore debug:', error);
+        res.status(500).send('Errore del server');
     }
 });
 
@@ -1467,34 +1554,167 @@ app.get('/stations/new', requireAuth, (req, res) => {
 
 // Route per processare l'invio del form di creazione nuova centralina
 app.post('/stations/new', requireAuth, async (req, res) => {
-    console.log('Richiesta creazione nuova centralina:', req.body);
+    console.log('\n=== INIZIO CREAZIONE NUOVO DISPOSITIVO ===');
+    console.log('Dati ricevuti:', JSON.stringify(req.body, null, 2));
+    console.log('Utente nella sessione:', req.session.user ? req.session.user._id : 'Nessun utente in sessione');
+    
+    // Inizializza la sessione di transazione
+    let session;
     try {
-        // Validazione dei dati in input
-        if (!req.body.name) {
-            return res.status(400).send('Il nome della centralina è obbligatorio');
-        }
-        
-        // Creazione della nuova centralina
-        const newStation = new Station({
-            userId: req.session.user._id,
-            name: req.body.name,
-            location: req.body.location || 'Non specificata',
-            description: req.body.description || '',
-            status: 'active',
-            createdAt: new Date()
-        });
-        
-        // Salvataggio nel database
-        await newStation.save();
-        console.log('Nuova centralina creata con successo:', newStation);
-        
-        // Redirect alla dashboard dopo la creazione
-        return res.redirect('/dashboard');
-    } catch (error) {
-        console.error('Errore creazione nuova centralina:', error);
+        session = await mongoose.startSession();
+        session.startTransaction();
+        console.log('Sessione di transazione avviata');
+    } catch (sessionError) {
+        console.error('Errore nell\'avvio della sessione di transazione:', sessionError);
         return res.status(500).render('new-station', {
             user: req.session.user,
-            error: 'Si è verificato un errore durante la creazione della centralina'
+            error: 'Errore di sistema. Riprova più tardi.',
+            formData: req.body
+        });
+    }
+    
+    try {
+        // Validazione dei dati in input
+        if (!req.body.deviceId) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).render('new-station', {
+                user: req.session.user,
+                error: 'Il campo ID Dispositivo è obbligatorio',
+                formData: req.body
+            });
+        }
+        
+        if (!req.body.position) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).render('new-station', {
+                user: req.session.user,
+                error: 'Il campo Posizione è obbligatorio',
+                formData: req.body
+            });
+        }
+        
+        // Verifica se l'utente esiste e ha il diritto di creare un nuovo dispositivo
+        console.log('\n1. Ricerca utente con ID:', req.session.user._id);
+        const user = await User.findById(req.session.user._id);
+        
+        if (!user) {
+            console.error('ERRORE: Utente non trovato nel database');
+            return res.status(404).render('error', {
+                message: 'Utente non trovato',
+                error: 'Impossibile trovare l\'utente corrente',
+                user: null,
+                isLoggedIn: false
+            });
+        }
+        
+        console.log('2. Utente trovato:', user.username);
+        console.log('   - Piano attuale:', user.subscription);
+        console.log('   - Numero massimo dispositivi consentiti:', user.getMaxDevices());
+        
+        // Verifica se esiste già un dispositivo con lo stesso deviceId
+        console.log('\n3. Verifica esistenza dispositivo con ID:', req.body.deviceId.trim());
+        const existingDevice = await Device.findOne({ deviceId: req.body.deviceId.trim() });
+        
+        if (existingDevice) {
+            console.error('ERRORE: Esiste già un dispositivo con questo ID');
+            return res.status(400).render('new-station', {
+                user: req.session.user,
+                error: 'Un dispositivo con questo ID esiste già',
+                formData: req.body
+            });
+        }
+        
+        console.log('4. Nessun dispositivo esistente con questo ID, procedo con la creazione');
+        
+        // Verifica il limite di dispositivi in base al piano
+        const maxDevices = user.getMaxDevices();
+        console.log('\n5. Verifica limite dispositivi per il piano');
+        console.log('   - Massimo consentito:', maxDevices);
+        
+        const userDeviceCount = await Device.countDocuments({ user: user._id });
+        console.log('   - Dispositivi attuali:', userDeviceCount);
+        
+        if (userDeviceCount >= maxDevices) {
+            const errorMsg = `Hai raggiunto il numero massimo di dispositivi consentiti per il tuo piano (${maxDevices}). Aggiorna il tuo piano per aggiungere più dispositivi.`;
+            console.error('ERRORE:', errorMsg);
+            
+            return res.status(400).render('new-station', {
+                user: req.session.user,
+                error: errorMsg,
+                formData: req.body
+            });
+        }
+        
+        console.log('6. Limite dispositivi rispettato, procedo con la creazione');
+        
+        // Crea il nuovo dispositivo
+        console.log('\n7. Creazione nuovo dispositivo');
+        const newDevice = new Device({
+            deviceId: req.body.deviceId.trim(),
+            user: user._id,
+            position: req.body.position.trim(),
+            readings: [] // Inizialmente nessuna lettura
+        });
+        
+        console.log('8. Salvataggio nuovo dispositivo nel database');
+        try {
+            // Salva il dispositivo
+            const savedDevice = await newDevice.save();
+            console.log('   - Dispositivo salvato con successo:', savedDevice);
+            
+            // Aggiungi il dispositivo all'utente
+            console.log('9. Aggiornamento utente con il nuovo dispositivo');
+            user.devices.push(savedDevice._id);
+            await user.save();
+            console.log('   - Utente aggiornato con successo');
+            
+            console.log('\n=== NUOVO DISPOSITIVO CREATO CON SUCCESSO ===');
+            console.log('ID:', savedDevice._id);
+            console.log('Device ID:', savedDevice.deviceId);
+            console.log('Posizione:', savedDevice.position);
+            console.log('Proprietario:', user.username);
+            console.log('===========================================\n');
+            
+            // Reindirizza alla dashboard con un messaggio di successo
+            return res.redirect('/dashboard?success=dispositivo_creato');
+            
+        } catch (saveError) {
+            console.error('ERRORE durante il salvataggio:', saveError);
+            throw saveError; // Rilancia l'errore per la gestione generale
+        }
+        
+    } catch (error) {
+        console.error('\n=== ERRORE DURANTE LA CREAZIONE DEL DISPOSITIVO ===');
+        console.error('Tipo di errore:', error.name);
+        console.error('Messaggio:', error.message);
+        
+        if (error.name === 'ValidationError') {
+            console.error('Errori di validazione:', error.errors);
+        } else if (error.name === 'MongoError') {
+            console.error('Errore MongoDB - Codice:', error.code);
+            console.error('Stack:', error.stack);
+        }
+        
+        // Determina il messaggio di errore appropriato
+        let errorMessage = 'Si è verificato un errore durante la creazione del dispositivo';
+        if (error.name === 'ValidationError') {
+            errorMessage = 'Dati non validi: ' + Object.values(error.errors).map(e => e.message).join(', ');
+        } else if (error.name === 'MongoError' && error.code === 11000) {
+            errorMessage = 'Un dispositivo con questo ID esiste già';
+        } else if (error.message) {
+            errorMessage += ': ' + error.message;
+        }
+        
+        console.error('Messaggio di errore mostrato all\'utente:', errorMessage);
+        
+        // Reindirizza alla pagina di creazione con l'errore
+        return res.status(500).render('new-station', {
+            user: req.session.user,
+            error: errorMessage,
+            formData: req.body,
+            isLoggedIn: true
         });
     }
 });
@@ -1783,15 +2003,83 @@ app.get('/account', requireAuth, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server avviato su http://localhost:${PORT}`);
-});
+// L'avvio del server è stato spostato alla fine del file
 
 // Route di fallback per gestire i percorsi non trovati (404)
 // Questa route deve essere definita DOPO tutte le altre route
 app.use((req, res) => {
     console.log(`Percorso non trovato: ${req.url} - Reindirizzamento alla home`);
     res.redirect('/');
+});
+
+// Gestione errori globale
+app.use((err, req, res, next) => {
+    console.error('\n=== ERRORE GLOBALE ===');
+    console.error('Timestamp:', new Date().toISOString());
+    console.error('URL:', req.originalUrl);
+    console.error('Metodo:', req.method);
+    console.error('Errore:', err);
+    console.error('Stack:', err.stack || 'Nessuno stack trace disponibile');
+    
+    // Se l'intestazione di risposta è già stata inviata, passa al gestore di errori predefinito di Express
+    if (res.headersSent) {
+        console.error('Headers già inviati, impossibile inviare risposta di errore');
+        return next(err);
+    }
+    
+    // Determina il messaggio di errore da mostrare all'utente
+    const errorMessage = process.env.NODE_ENV === 'development' 
+        ? `${err.message || 'Errore sconosciuto'}\n\n${err.stack || ''}`
+        : 'Si è verificato un errore imprevisto. Riprova più tardi.';
+    
+    // Se la richiesta accetta una risposta JSON, invia un JSON
+    if (req.accepts('json')) {
+        console.log('Invio risposta JSON di errore');
+        return res.status(500).json({ 
+            success: false, 
+            error: errorMessage,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+    }
+    
+    // Altrimenti, renderizza una pagina di errore
+    console.log('Renderizzazione pagina di errore');
+    res.status(500).render('error', {
+        message: 'Errore del server',
+        error: errorMessage,
+        user: req.session && req.session.user ? req.session.user : null,
+        isLoggedIn: !!(req.session && req.session.user),
+        layout: 'layouts/main' // Assicurati che questo layout esista
+    });
+});
+
+// Gestione di route non trovate - deve essere l'ultimo middleware
+app.use((req, res, next) => {
+    res.status(404).render('error', {
+        message: 'Pagina non trovata',
+        error: 'La pagina richiesta non esiste o è stata spostata.',
+        user: req.session && req.session.user ? req.session.user : null,
+        isLoggedIn: !!(req.session && req.session.user),
+        layout: 'layouts/main'
+    });
+});
+
+// Route di fallback per gestire i percorsi non trovati (404)
+// Manteniamo solo una delle due gestioni di 404 per evitare confusione
+app.use((req, res) => {
+    console.log(`Percorso non trovato: ${req.url} - Reindirizzamento alla home`);
+    res.redirect('/');
+});
+
+// Route di fallback - se nessuna route precedente corrisponde, reindirizza alla home
+app.use((req, res) => {
+    console.log('Percorso non trovato:', req.path, '- Reindirizzamento alla home');
+    res.redirect('/');
+});
+
+// Avvio del server - deve essere l'ultima istruzione
+app.listen(PORT, () => {
+    console.log(`Server avviato su http://localhost:${PORT}`);
 });
 
 // Fine del file

@@ -1,0 +1,189 @@
+<!-- Banner Cookie per consenso GDPR -->
+<div id="cookie-banner" class="cookie-banner">
+    <div class="cookie-content">
+        <div class="cookie-header">
+            <h4><i class="fas fa-cookie-bite"></i> Consenso all'utilizzo dei cookie</h4>
+        </div>
+        <div class="cookie-body">
+            <p>Questo sito utilizza cookie tecnici necessari al funzionamento e cookie analitici per migliorare la tua esperienza. 
+               Prima di continuare la navigazione, ti chiediamo di accettare l'utilizzo dei cookie come descritto nella nostra 
+               <a href="/privacy-policy" class="cookie-link">Privacy Policy</a>.</p>
+            
+            <div class="cookie-controls">
+                <div class="cookie-options">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="cookie-necessary" checked disabled>
+                        <label class="form-check-label" for="cookie-necessary">
+                            Cookie necessari <small>(obbligatori)</small>
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="cookie-analytics">
+                        <label class="form-check-label" for="cookie-analytics">
+                            Cookie analitici
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="cookie-marketing">
+                        <label class="form-check-label" for="cookie-marketing">
+                            Cookie di marketing
+                        </label>
+                    </div>
+                </div>
+                <div class="cookie-buttons">
+                    <button id="reject-cookies" class="btn btn-outline-secondary">Rifiuta tutti</button>
+                    <button id="accept-selected-cookies" class="btn btn-outline-primary">Accetta selezionati</button>
+                    <button id="accept-all-cookies" class="btn btn-primary">Accetta tutti</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cookie-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+        z-index: 9999;
+        padding: 0;
+        transform: translateY(100%);
+        opacity: 0;
+        transition: all 0.5s ease-in-out;
+        border-top: 3px solid var(--primary-color);
+    }
+    
+    .cookie-banner.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    
+    .cookie-content {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .cookie-header {
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+    
+    .cookie-header h4 {
+        margin: 0;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .cookie-body p {
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        color: #555;
+    }
+    
+    .cookie-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    
+    .cookie-options {
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .cookie-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .cookie-link {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
+    
+    .form-check {
+        margin-bottom: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .cookie-controls {
+            flex-direction: column;
+        }
+        
+        .cookie-buttons {
+            margin-top: 15px;
+            justify-content: flex-end;
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verifica se l'utente ha già dato il consenso
+        if (!localStorage.getItem('cookieConsent')) {
+            // Mostra il banner dopo un breve ritardo
+            setTimeout(function() {
+                document.getElementById('cookie-banner').classList.add('show');
+            }, 1000);
+        }
+        
+        // Accetta tutti i cookie
+        document.getElementById('accept-all-cookies').addEventListener('click', function() {
+            document.getElementById('cookie-analytics').checked = true;
+            document.getElementById('cookie-marketing').checked = true;
+            saveCookiePreferences(true, true, true);
+        });
+        
+        // Accetta solo i cookie selezionati
+        document.getElementById('accept-selected-cookies').addEventListener('click', function() {
+            const analyticsConsent = document.getElementById('cookie-analytics').checked;
+            const marketingConsent = document.getElementById('cookie-marketing').checked;
+            saveCookiePreferences(true, analyticsConsent, marketingConsent);
+        });
+        
+        // Rifiuta tutti i cookie non necessari
+        document.getElementById('reject-cookies').addEventListener('click', function() {
+            document.getElementById('cookie-analytics').checked = false;
+            document.getElementById('cookie-marketing').checked = false;
+            saveCookiePreferences(true, false, false);
+        });
+        
+        function saveCookiePreferences(necessary, analytics, marketing) {
+            // Salva le preferenze in localStorage
+            const preferences = {
+                necessary: necessary,
+                analytics: analytics,
+                marketing: marketing,
+                timestamp: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            localStorage.setItem('cookieConsent', JSON.stringify(preferences));
+            
+            // Invia le preferenze al server (per il tracciamento del consenso GDPR)
+            fetch('/api/cookie-consent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            }).then(response => {
+                console.log('Preferenze cookie salvate');
+            }).catch(error => {
+                console.error('Errore nel salvataggio delle preferenze:', error);
+            });
+            
+            // Nascondi il banner
+            document.getElementById('cookie-banner').classList.remove('show');
+        }
+    });
+</script>

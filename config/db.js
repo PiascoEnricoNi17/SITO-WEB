@@ -1,9 +1,15 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
 const connectDB = async () => {
   try {
-    // Utilizziamo esplicitamente l'indirizzo IP 127.0.0.1 (IPv4) invece di localhost
-    const conn = await mongoose.connect('mongodb://127.0.0.1:27017/loraAirDB');
+    // Utilizziamo le variabili d'ambiente per la connessione a MongoDB
+    // Se non sono presenti, usiamo la connessione locale di default
+    const mongoURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/loraAirDB';
+    
+    const conn = await mongoose.connect(mongoURI, {
+      // Parametri opzionali di configurazione se necessari
+    });
     
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return true;

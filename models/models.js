@@ -10,7 +10,8 @@ const readingsSchema = new mongoose.Schema({
     pressure: { type: Number },
     gas: { type: Number },
     soilMoisture: { type: Number },
-    rain: { type: Number }
+    rain: { type: Number },
+    wind: { type: Number } // Ho aggiunto la velocità del vento in Km/h
 });
 
 // Schema per i dispositivi (centraline)
@@ -32,15 +33,22 @@ const userSchema = new mongoose.Schema({
 
 // Funzione per ottenere il numero massimo di centraline in base al piano
 userSchema.methods.getMaxDevices = function() {
-    switch(this.subscription) {
-        case 'standard':
-            return 1;
-        case 'premium':
+    // Normalizziamo il piano in minuscolo per evitare problemi di case sensitivity
+    const plan = this.subscription ? this.subscription.toLowerCase() : '';
+    
+    console.log(`Piano abbonamento (normalizzato): '${plan}', originale: '${this.subscription}'`);
+    
+    switch(plan) {
+        case 'base':
+        case 'basic': // Per compatibilità con possibili varianti
             return 3;
-        case 'professional':
+        case 'standard':
+            return 6;
+        case 'premium':
             return 10;
         default:
-            return 0;
+            console.log(`ATTENZIONE: Piano non riconosciuto '${this.subscription}', impostato limite predefinito di 3 dispositivi`);
+            return 3; // Impostiamo 3 come predefinito anche per piani non riconosciuti
     }
 };
 

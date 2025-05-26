@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Variabili CSS personalizzate per il tema */
+        /* Ho definito variabili CSS personalizzate per il tema */
         :root {
             --primary-color: #4CAF50;
             --secondary-color: #2196F3;
@@ -310,10 +310,17 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Link alla route dinamica EJS -->
-                                <a href="/station/<%= station.id %>" class="btn btn-light w-100 mt-3">
-                                    <i class="fas fa-chart-line me-2"></i>Visualizza dettagli
-                                </a>
+                                <!-- Pulsanti azione -->
+                                <div class="d-flex gap-2 mt-3">
+                                    <!-- Link alla route dinamica EJS -->
+                                    <a href="/station/<%= station.id %>" class="btn btn-light flex-grow-1">
+                                        <i class="fas fa-chart-line me-2"></i>Dettagli
+                                    </a>
+                                    <!-- Pulsante elimina con conferma -->
+                                    <button class="btn btn-outline-danger delete-station" data-id="<%= station.id %>" data-name="<%= station.name %>">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -331,16 +338,46 @@
             
             <!-- Card per aggiungere una nuova centralina -->
             <% if (stations && stations.length > 0) { %>
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="add-station-card">
-                    <div class="add-station-icon">
-                        <i class="fas fa-plus"></i>
+                <% 
+                // Calcola il limite di dispositivi in base al piano
+                let maxDevices = 3; // Default per piano 'base'
+                if (user && user.subscription) {
+                    const plan = user.subscription.toLowerCase();
+                    if (plan === 'standard') maxDevices = 6;
+                    else if (plan === 'premium') maxDevices = 10;
+                }
+                
+                // Verifica se l'utente ha raggiunto il limite
+                const hasReachedLimit = stations.length >= maxDevices;
+                %>
+                
+                <% if (!hasReachedLimit) { %>
+                <!-- Mostra la card solo se l'utente non ha raggiunto il limite -->
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="add-station-card">
+                        <div class="add-station-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <h4 class="add-station-text">Aggiungi nuova centralina</h4>
+                        <p class="text-muted">Configura un nuovo dispositivo LoraAir</p>
+                        <a href="/stations/new" class="btn btn-outline-primary mt-2">Inizia configurazione</a>
                     </div>
-                    <h4 class="add-station-text">Aggiungi nuova centralina</h4>
-                    <p class="text-muted">Configura un nuovo dispositivo LoraAir</p>
-                    <a href="/stations/new" class="btn btn-outline-primary mt-2">Inizia configurazione</a>
                 </div>
-            </div>
+                <% } else { %>
+                <!-- Mostra un messaggio se l'utente ha raggiunto il limite -->
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="add-station-card bg-light border-0" style="border: 2px dashed #dee2e6 !important; opacity: 0.8;">
+                        <div class="add-station-icon text-warning">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <h4 class="add-station-text text-muted">Limite raggiunto</h4>
+                        <p class="text-muted">Hai raggiunto il limite di <%= maxDevices %> centraline per il tuo piano <%= user.subscription %>.</p>
+                        <a href="/subscription" class="btn btn-warning mt-2">
+                            <i class="fas fa-arrow-up me-2"></i>Aggiorna piano
+                        </a>
+                    </div>
+                </div>
+                <% } %>
             <% } %>
         </div>
 
@@ -375,6 +412,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Ho incluso il banner dei cookie per il consenso GDPR -->
+    <%- include('./partials/cookie-banner.ejs') %>
+    <!-- SweetAlert2 per alert grafici moderni -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Animate.css per animazioni fluide e veloci -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <script>
         // Funzione per aggiornare l'orologio in tempo reale
         function updateClock() {
@@ -397,6 +440,123 @@
             document.getElementById("scrollProgressBar").style.width = scrolled + "%";
         });
         
+        // Gestione dei pulsanti di eliminazione con animazione veloce
+        document.addEventListener('click', function(e) {
+            // Controllo se l'elemento cliccato è un pulsante delete-station o un suo figlio
+            const deleteBtn = e.target.closest('.delete-station');
+            if (deleteBtn) {
+                e.preventDefault();
+                const stationId = deleteBtn.getAttribute('data-id');
+                const stationName = deleteBtn.getAttribute('data-name');
+                
+                // Dialog di conferma grafico con SweetAlert2
+                Swal.fire({
+                    title: 'Elimina centralina',
+                    html: `<div>
+                        <p>Sei sicuro di voler eliminare la centralina <strong>"${stationName}"</strong>?</p>
+                        <p class="text-danger"><small>Questa azione non può essere annullata.</small></p>
+                    </div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Elimina',
+                    cancelButtonText: 'Annulla',
+                    backdrop: true,
+                    allowOutsideClick: true,
+                    showClass: {
+                        popup: 'animate__animated animate__fadeIn animate__faster' // Animazione veloce come preferito dall'utente
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOut animate__faster'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Animazione rapida prima dell'eliminazione
+                        const card = deleteBtn.closest('.col-md-6');
+                        card.style.transition = 'all 0.2s ease'; // Ancora più veloce
+                        card.style.opacity = '0.5';
+                        card.style.transform = 'scale(0.95)';
+                        
+                        // Invia richiesta di eliminazione al server
+                        fetch(`/api/devices/${stationId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                // Accelera l'animazione di uscita
+                                card.style.transition = 'all 0.2s ease';
+                                card.style.opacity = '0';
+                                card.style.transform = 'scale(0.8)';
+                                
+                                // Mostra alert di conferma con durata maggiore
+                                Swal.fire({
+                                    title: 'Eliminato!',
+                                    text: `Centralina "${stationName}" eliminata con successo`,
+                                    icon: 'success',
+                                    timer: 3000, // Aumento a 3 secondi per maggiore visibilità
+                                    showConfirmButton: true, // Aggiungo pulsante di conferma
+                                    confirmButtonText: 'Ok',
+                                    confirmButtonColor: '#4CAF50',
+                                    timerProgressBar: true,
+                                    toast: true,
+                                    position: 'top-end',
+                                    showClass: {
+                                        popup: 'animate__animated animate__fadeInRight animate__faster'
+                                    },
+                                    hideClass: {
+                                        popup: 'animate__animated animate__fadeOutRight animate__faster'
+                                    }
+                                });
+                                
+                                // Rimuovi la card dopo una breve animazione
+                                setTimeout(() => {
+                                    card.remove();
+                                    
+                                    // Se era l'ultima card, mostra il messaggio "nessuna centralina"
+                                    const remainingCards = document.querySelectorAll('.station-card').length;
+                                    if (remainingCards === 0) {
+                                        location.reload(); // Ricarica per mostrare il messaggio "nessuna centralina"
+                                    }
+                                }, 200); // Animazione rapida come preferito dall'utente
+                            } else {
+                                // Alert grafico per errore
+                                Swal.fire({
+                                    title: 'Errore!',
+                                    text: 'Impossibile eliminare la centralina',
+                                    icon: 'error',
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    confirmButtonText: 'Ok',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                                card.style.opacity = '1';
+                                card.style.transform = 'scale(1)';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Errore:', error);
+                            // Alert grafico per errore di rete
+                            Swal.fire({
+                                title: 'Errore di connessione',
+                                text: 'Si è verificato un errore durante l\'eliminazione',
+                                icon: 'error',
+                                timer: 3000,
+                                timerProgressBar: true,
+                                confirmButtonText: 'Ok',
+                                confirmButtonColor: '#dc3545'
+                            });
+                            card.style.opacity = '1';
+                            card.style.transform = 'scale(1)';
+                        });
+                    }
+                });
+            }
+        });
+        
         // Animazioni al caricamento della pagina
         document.addEventListener('DOMContentLoaded', function() {
             // Aggiungi classe di animazione alle card 
@@ -407,5 +567,8 @@
             });
         });
     </script>
+    
+    <!-- Ho incluso il banner dei cookie per il consenso GDPR -->
+    <%- include('./partials/cookie-banner.ejs') %>
 </body>
 </html>

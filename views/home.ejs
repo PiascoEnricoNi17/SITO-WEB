@@ -353,15 +353,7 @@
             100% { transform: translate(0, 0); }
         }
         
-        .sensors circle {
-            animation: pulse 3s ease-in-out 1; /* Esegue l'animazione una sola volta */
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        /* Nessuna animazione per i cerchi dei sensori */
     </style>
 </head>
 <body>
@@ -620,7 +612,7 @@
                         <a href="/register" class="footer-link">Registrati</a>
                         <a href="/login" class="footer-link">Accedi</a>
                         <a href="#" class="footer-link">FAQ</a>
-                        <a href="#" class="footer-link">Privacy Policy</a>
+                        <a href="/privacy-policy" class="footer-link">Privacy Policy</a>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -668,5 +660,8 @@
             }
         });
     </script>
+    
+    <!-- Ho incluso il banner dei cookie per il consenso GDPR -->
+    <%- include('./partials/cookie-banner.ejs') %>
 </body>
 </html>

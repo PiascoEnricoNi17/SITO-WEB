@@ -6,6 +6,9 @@
     <title>Dettagli Centralina - LoraAir</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Ho incluso Chart.js e plugin per i mini-grafici -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
         :root {
             --primary-color: #4CAF50;
@@ -17,7 +20,7 @@
             --site-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         }
         
-        /* Stile base e moderno - in linea con il sito */
+        /* Ho creato uno stile base moderno - in linea con il resto del sito */
         body {
             background-color: var(--background-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,7 +28,7 @@
             position: relative;
         }
         
-        /* Card design - stile LoraAir */
+        /* Ho definito il design delle card - stile LoraAir */
         .col-md-4 {
             transition: all 0.3s ease;
         }
@@ -185,6 +188,40 @@
             100% { color: var(--text-color); transform: scale(1); }
         }
         
+        /* Stili per i mini-grafici */
+        .mini-chart-container {
+            position: relative;
+            height: 120px;
+            width: 100%;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            padding: 15px 20px 5px 20px;
+            transition: all 0.3s ease;
+            overflow: visible; /* Consente agli elementi di estendersi oltre il contenitore */
+        }
+        
+        .mini-chart-container:hover {
+            transform: translateY(-2px);
+        }
+        
+        .chart-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            color: var(--text-color);
+        }
+        
+        .chart-title i {
+            margin-right: 5px;
+            transition: transform 0.3s ease;
+        }
+        
+        .mini-chart-container:hover .chart-title i {
+            transform: rotate(10deg);
+        }
+        
         /* Icone con effetto hover */
         .card-header i {
             transition: transform 0.3s ease;
@@ -263,9 +300,34 @@
                         <h5 class="mb-0"><i class="fas fa-broadcast-tower me-2"></i>Dettagli Stazione</h5>
                     </div>
                     <div class="card-body">
-                        <h2 class="mb-3"><%= station?.name || 'Centralina' %></h2>
-                        <p class="mb-2"><i class="fas fa-map-marker-alt me-2"></i>
-                           <span id="station-location" style="font-weight: 500; color: #333;">Via Don Carlo Chiavazza 16, Racconigi</span></p>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="mb-0">
+                                <i class="fas fa-microchip me-2"></i>
+                                <%= station.name || 'Centralina Senza Nome' %>
+                            </h2>
+                            <span class="badge bg-<%= station.status === 'active' ? 'success' : 'danger' %> px-3 py-2">
+                                <i class="fas fa-<%= station.status === 'active' ? 'check-circle' : 'exclamation-circle' %> me-1"></i>
+                                <%= station.status || 'sconosciuto' %>
+                            </span>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-2">
+                                    <i class="fas fa-map-marker-alt fa-lg text-dark"></i>
+                                </div>
+                                <h4 class="mb-0" id="station-location">
+                                    <% if (typeof station.position === 'string' && station.position) { %>
+                                        <%= station.position %>
+                                    <% } else if (typeof station.location === 'string' && station.location) { %>
+                                        <%= station.location %>
+                                    <% } else { %>
+                                        Posizione non specificata
+                                    <% } %>
+                                </h4>
+                            </div>
+                            <!-- ID rimosso come richiesto dall'utente -->
+                        </div>
                         <p class="mb-0 last-update"><i class="fas fa-clock me-2"></i>
                            Ultimo aggiornamento: <span id="lastUpdate"><%= 
                                 sensorData?.timestamp ? new Date(sensorData.timestamp).toLocaleString() : 'N/D' 
@@ -278,146 +340,205 @@
         <!-- Prima riga di card sensori -->
         <div class="row">
             <!-- Temperatura -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-4">
                 <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-temperature-high me-2"></i>Temperatura</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <h3 class="display-4 gradient-text float" id="temp-value">
-                            <%= sensorData?.temperature?.current ? sensorData.temperature.current.toFixed(1) : '--' %> °C
-                        </h3>
-                        <div class="mt-3 text-muted small"><i class="fas fa-info-circle me-1"></i>Misurazione in tempo reale</div>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-temperature-high"></i> Temperatura
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="temperature-value">
+                            <%= sensorData?.temperature ? parseFloat(sensorData.temperature).toFixed(1) : '-- ' %> °C
+                        </h2>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="temperature-chart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- Umidità -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-4">
                 <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-tint me-2"></i>Umidità</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <h3 class="display-4 gradient-text float" id="humidity-value">
-                            <%= sensorData?.humidity?.current ? sensorData.humidity.current.toFixed(1) : '--' %> %
-                        </h3>
-                        <div class="progress mt-3">
-                            <div class="progress-bar bg-primary" id="humidity-bar" role="progressbar" 
-                                style="width: 0%" 
-                                aria-valuenow="<%= sensorData?.humidity?.current || 0 %>" 
-                                aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-tint"></i> Umidità
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="humidity-value">
+                            <span><%= sensorData?.humidity ? parseFloat(sensorData.humidity).toFixed(1) : '-- ' %></span><span>%</span>
+                        </h2>
+                        <div class="progress mt-3" style="height: 10px;">
+                            <div class="progress-bar bg-info" role="progressbar" id="humidity-bar" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Qualità Aria -->
-            <div class="col-md-4 mb-3">
-                <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-wind me-2"></i>Qualità Aria</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <h3 class="display-4 gradient-text float" id="air-quality-value">
-                            <%= sensorData?.airQuality?.current ? sensorData.airQuality.current.toFixed(1) : '--' %> ppm
-                        </h3>
-                        <div id="air-quality-status" class="badge bg-success mt-2">Ottima</div>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="humidity-chart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Seconda riga di card sensori -->
         <div class="row">
-            <!-- Pressione -->
-            <div class="col-md-4 mb-3">
+            <!-- Qualità dell'aria -->
+            <div class="col-md-6 mb-4">
                 <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Pressione</h5>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-wind"></i> Qualità dell'aria
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="air-quality-value">
+                            <%= sensorData?.gas ? parseFloat(sensorData.gas).toFixed(1) : '-- ' %> ppm
+                        </h2>
+                        <span class="badge bg-success mt-2" id="air-quality-status">Eccellente</span>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="gas-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="card-body text-center">
-                        <h3 class="display-4 gradient-text float" id="pressure-value">
-                            <%= sensorData?.pressure ? sensorData.pressure.toFixed(1) : '--' %> hPa
-                        </h3>
-
+                </div>
+            </div>
+            
+            <!-- Pressione -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-gradient">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-tachometer-alt"></i> Pressione
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="pressure-value">
+                            <%= sensorData?.pressure ? parseFloat(sensorData.pressure).toFixed(1) : '-- ' %> hPa
+                        </h2>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="pressure-chart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- UV -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-4">
                 <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-sun me-2"></i>Indice UV</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <h3 class="display-4 gradient-text float" id="uv-value">
-                            <%= sensorData?.uv ? sensorData.uv.toFixed(1) : '--' %>
-                        </h3>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-sun"></i> Indice UV
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="uv-value">
+                            <%= sensorData?.uv ? parseFloat(sensorData.uv).toFixed(1) : '-- ' %>
+                        </h2>
                         <div id="uv-risk" class="badge bg-warning text-dark mt-2">Moderato</div>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="uv-chart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- Luminosità -->
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-4">
                 <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Luminosità</h5>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="far fa-lightbulb"></i> Luminosità
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="lux-value">
+                            <%= sensorData?.lux ? parseFloat(sensorData.lux).toFixed(1) : '-- ' %> lux
+                        </h2>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="lux-chart"></canvas>
+                        </div>
                     </div>
-                    <div class="card-body text-center">
-                        <h3 class="display-4 gradient-text float" id="lux-value">
-                            <%= sensorData?.lux ? sensorData.lux.toFixed(1) : '--' %> lux
-                        </h3>
-                        <div class="mt-2">
-                            <span class="me-2"><i class="fas fa-moon text-secondary"></i></span>
-                            <span class="lux-indicator" id="lux-indicator">●●●●●●●●●●</span>
-                            <span class="ms-2"><i class="fas fa-sun text-warning"></i></span>
+                </div>
+            </div>
+            
+
+        </div>
+        
+        <!-- Terza riga di card sensori -->
+        <div class="row">
+            <!-- Pioggia -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-gradient">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-cloud-rain"></i> Pioggia
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="rain-value">
+                            <%= sensorData?.rain ? sensorData.rain.toFixed(1) : '--' %> mm
+                        </h2>
+                        <p class="text-muted mt-2" id="rain-status">
+                            <% if (sensorData?.rain && sensorData.rain > 5) { %>
+                                Pioggia forte
+                            <% } else if (sensorData?.rain && sensorData.rain > 0) { %>
+                                Pioggia leggera
+                            <% } else { %>
+                                Nessuna pioggia
+                            <% } %>
+                        </p>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="rain-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Umidità del Suolo -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-gradient">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-seedling"></i> Umidità Suolo
+                        </h5>
+                        <h2 class="display-4 mb-0 gradient-text float" id="soil-moisture-value">
+                            <span><%= sensorData?.soilMoisture ? parseFloat(sensorData.soilMoisture).toFixed(1) : '-- ' %></span><span>%</span>
+                        </h2>
+                        <div class="progress mt-3" style="height: 10px;">
+                            <div class="progress-bar bg-success" id="soil-moisture-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico</div>
+                        <div class="mini-chart-container">
+                            <canvas id="soil-moisture-chart"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Terza riga di card sensori -->
-        <div class="row">
-            <!-- Pioggia -->
-            <div class="col-md-6 mb-3">
+        <!-- Velocità del vento (Card a larghezza piena) -->
+        <div class="row mt-4">
+            <div class="col-12 mb-4">
                 <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-cloud-rain me-2"></i>Pioggia</h5>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h3 class="display-4 gradient-text" id="rain-value">
-                            <%= sensorData?.rain ? sensorData.rain.toFixed(1) : '--' %> mm
-                        </h3>
-                        <p class="text-muted mt-2" id="rain-status">
-                            <% if (sensorData?.rain && sensorData.rain > 0) { %>
-                                Precipitazione in corso
-                            <% } else { %>
-                                Nessuna precipitazione
-                            <% } %>
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Umidità del Suolo -->
-            <div class="col-md-6 mb-3">
-                <div class="card h-100 border-gradient">
-                    <div class="card-header text-white" style="background: var(--site-gradient);">
-                        <h5 class="mb-0"><i class="fas fa-seedling me-2"></i>Umidità Suolo</h5>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h3 class="display-4 gradient-text" id="soil-moisture-value">
-                            <%= sensorData?.soilMoisture ? sensorData.soilMoisture.toFixed(1) : '--' %> %
-                        </h3>
-                        <div class="progress mt-3 w-75">
-                            <div class="progress-bar bg-success" id="soil-moisture-bar" role="progressbar" 
-                                style="width: 0%" 
-                                aria-valuenow="<%= sensorData?.soilMoisture || 0 %>" 
-                                aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-wind"></i> Velocità del vento
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h2 class="display-3 mb-0 gradient-text float" id="wind-value">
+                                    <%= sensorData?.wind ? parseFloat(sensorData.wind).toFixed(1) : '-- ' %> Km/h
+                                </h2>
+                                <p class="text-muted mt-2" id="wind-status">
+                                    <% if (sensorData?.wind && sensorData.wind > 50) { %>
+                                        Vento forte
+                                    <% } else if (sensorData?.wind && sensorData.wind > 20) { %>
+                                        Vento moderato
+                                    <% } else if (sensorData?.wind && sensorData.wind > 0) { %>
+                                        Brezza leggera
+                                    <% } else { %>
+                                        Calma
+                                    <% } %>
+                                </p>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="chart-title"><i class="fas fa-chart-line"></i> Andamento storico della velocità del vento</div>
+                                <div class="mini-chart-container" style="height: 180px;"> <!-- Grafico più alto -->
+                                    <canvas id="wind-chart"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -441,13 +562,17 @@
             if (lastPart && lastPart.length > 0 && lastPart !== 'undefined') {
                 STATION_ID = lastPart;
             } else {
-                // Se ancora fallisce, usa l'ID noto specifico
-                STATION_ID = '681a1a601e6779a1233b5090';
+                // Se ancora fallisce, usa un valore vuoto
+                STATION_ID = '';
+                console.error('Impossibile determinare l\'ID della stazione');
             }
         }
         
         // Stato dati per confronto
         let lastData = {};
+        
+        // Registrazione del plugin DataLabels
+        Chart.register(ChartDataLabels);
         
         // Inizializzazione
         document.addEventListener('DOMContentLoaded', function() {
@@ -717,63 +842,326 @@
                 }
             }
             
-            // Carica dati simulati immediatamente prima di richiederli dal server
-            // Questo assicura che ci siano sempre dati mostrati
-            const simulatedData = {
-                temperature: {
-                    current: 24.5,
-                    unit: '°C',
-                    min: 20.2,
-                    max: 28.7
-                },
-                humidity: {
-                    current: 65.3,
-                    unit: '%',
-                    min: 55.1,
-                    max: 75.8
-                },
-                airQuality: {
-                    current: 85.4,
-                    unit: 'ppm'
-                },
-                pressure: 1013.2,
-                uv: 4.8,
-                lux: 1100.0,
-                soilMoisture: 75.2,
-                rain: 0.0,
-                timestamp: new Date(),
-                isSimulated: true
-            };
+            // Nessun dato simulato - mostra solo i dati reali ricevuti dal server
             
-            // Aggiorna i valori con i dati simulati prima di tentare la chiamata al server
-            updateSensorValue('temp-value', simulatedData.temperature.current, '°C');
-            updateSensorValue('humidity-value', simulatedData.humidity.current, '%');
-            updateSensorValue('air-quality-value', simulatedData.airQuality.current, 'ppm');
-            updateSensorValue('pressure-value', simulatedData.pressure, 'hPa');
-            updateSensorValue('uv-value', simulatedData.uv, '');
-            updateSensorValue('lux-value', simulatedData.lux, 'lux');
-            updateSensorValue('soil-moisture-value', simulatedData.soilMoisture, '%');
-            updateSensorValue('rain-value', simulatedData.rain, 'mm');
+            // Inizializza gli indicatori grafici vuoti
+            document.getElementById('humidity-bar').style.width = '0%';
+            document.getElementById('soil-moisture-bar').style.width = '0%';
             
-            // Aggiorna anche gli indicatori grafici
-            document.getElementById('humidity-bar').style.width = `${simulatedData.humidity.current}%`;
-            document.getElementById('soil-moisture-bar').style.width = `${simulatedData.soilMoisture}%`;
-            
-            // Aggiorna anche i badge e indicatori di stato
+            // Aggiorna gli indicatori di stato con valori vuoti
             updateStatusIndicators();
             
-            // Aggiorna timestamp
+            // Aggiorna timestamp con il tempo corrente del server
             const lastUpdateElement = document.getElementById('lastUpdate');
-            if (lastUpdateElement) {
-                lastUpdateElement.textContent = simulatedData.timestamp.toLocaleString();
+            if (lastUpdateElement && lastUpdateElement.textContent === 'N/D') {
+                lastUpdateElement.textContent = new Date().toLocaleString();
             }
+            
+            // Colori predefiniti per i grafici di ciascun sensore
+            const chartColors = {
+                temperature: { line: '#FF5722', fill: 'rgba(255, 87, 34, 0.2)' },
+                humidity: { line: '#2196F3', fill: 'rgba(33, 150, 243, 0.2)' },
+                gas: { line: '#9C27B0', fill: 'rgba(156, 39, 176, 0.2)' },
+                pressure: { line: '#4CAF50', fill: 'rgba(76, 175, 80, 0.2)' },
+                uv: { line: '#FF9800', fill: 'rgba(255, 152, 0, 0.2)' },
+                lux: { line: '#FFEB3B', fill: 'rgba(255, 235, 59, 0.2)' },
+                'soil-moisture': { line: '#8BC34A', fill: 'rgba(139, 195, 74, 0.2)' },
+                rain: { line: '#03A9F4', fill: 'rgba(3, 169, 244, 0.2)' },
+                wind: { line: '#607D8B', fill: 'rgba(96, 125, 139, 0.2)' } // Ho aggiunto il colore per il vento
+            };
+            
+            // Inizializzazione dei dati dei grafici con array vuoti
+            function getInitialChartData() {
+                return { 
+                    labels: [], 
+                    values: [] 
+                };
+            }
+            
+
+            
+            // Configurazione comune per i mini-grafici
+            function getChartConfig(sensorType, color) {
+                const data = getInitialChartData();
+                
+                return {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Valore',
+                            data: data.values,
+                            borderColor: color.line,
+                            backgroundColor: color.fill,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            borderDash: [5, 5], // Linea tratteggiata per l'andamento storico
+                            pointRadius: 0 // Nascondi i punti per un aspetto più pulito
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }, // Nascondi la legenda
+                            tooltip: { enabled: true }, // Mantieni i tooltip
+                            datalabels: {
+                                align: 'top',
+                                anchor: 'end',
+                                color: function(context) {
+                                    return context.dataset.borderColor;
+                                },
+                                font: {
+                                    weight: 'bold',
+                                    family: "'Segoe UI', sans-serif",
+                                    size: 10
+                                },
+                                formatter: function(value, context) {
+                                    // Mostra solo alcuni valori per non affollare il grafico
+                                    // Mostra primo, ultimo e alcuni punti in mezzo
+                                    const index = context.dataIndex;
+                                    const count = context.dataset.data.length;
+                                    if (index === 0 || index === count-1 || index === Math.floor(count/2)) {
+                                        return value;
+                                    }
+                                    return null;
+                                },
+                                padding: 8,
+                                // Assicura che le etichette non vengano tagliate ai bordi
+                                clamp: false,
+                                clip: false,
+                                // Usa un offset per creare più spazio
+                                offset: 10
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: false, // Nascondi l'asse X per un aspetto più pulito
+                                ticks: {
+                                    padding: 15 // Aggiungi padding per i tick (anche se nascosti)
+                                }
+                            },
+                            y: {
+                                display: false, // Nascondi l'asse Y per un aspetto più pulito
+                                beginAtZero: false,
+                                ticks: {
+                                    padding: 15 // Aggiungi padding per i tick (anche se nascosti)
+                                }
+                            }
+                        },
+                        // Imposta il padding del grafico per dare più spazio alle etichette
+                        layout: {
+                            padding: {
+                                left: 15,
+                                right: 15,
+                                top: 20,
+                                bottom: 5
+                            }
+                        },
+                        animation: {
+                            duration: 400 // Animazione veloce come preferisce l'utente
+                        },
+                        elements: {
+                            line: {
+                                borderWidth: 2
+                            }
+                        }
+                    }
+                };
+            }
+            
+            // Variabile per memorizzare tutti i grafici
+            let charts = {};
+            
+            // Prepariamo i dati storici dal modello
+            const stationReadings = JSON.parse('<%= JSON.stringify(station.readings || []) %>');
+            
+            // Funzione per preparare i dati storici dalle letture
+            function prepareHistoricalData(readings) {
+                if (!readings || readings.length === 0) return {};
+                
+                // Organizza i dati per tipo di sensore
+                const sortedReadings = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                const labels = sortedReadings.map(r => {
+                    try {
+                        return new Date(r.timestamp).toLocaleTimeString();
+                    } catch (e) {
+                        return '';
+                    }
+                });
+                
+                return {
+                    temperature: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.temperature) || null)
+                    },
+                    humidity: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.humidity) || null)
+                    },
+                    gas: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.gas) || null)
+                    },
+                    pressure: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.pressure) || null)
+                    },
+                    uv: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.uv) || null)
+                    },
+                    lux: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.lux) || null)
+                    },
+                    'soil-moisture': {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.soilMoisture) || null)
+                    },
+                    rain: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.rain) || null)
+                    },
+                    wind: {
+                        labels: labels,
+                        values: sortedReadings.map(r => parseFloat(r.wind) || null)
+                    }
+                };
+            }
+            
+            // Prepara i dati storici
+            const historicalData = prepareHistoricalData(stationReadings);
+            
+            // Funzione per inizializzare tutti i mini-grafici
+            function initCharts() {
+                const sensorTypes = ['temperature', 'humidity', 'gas', 'pressure', 'uv', 'lux', 'soil-moisture', 'rain', 'wind'];
+                
+                sensorTypes.forEach(type => {
+                    const canvas = document.getElementById(`${type}-chart`);
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        charts[type] = new Chart(ctx, getChartConfig(type, chartColors[type] || chartColors.temperature));
+                    }
+                });
+            }
+            
+            // Funzione per caricare i dati storici
+            function loadHistoricalData() {
+                // Utilizzo l'ID fisso del dispositivo visto nei log
+                const stationId = '681a1a601e6779a1233b5090';  // ID del dispositivo "lora001"
+                console.log('Caricamento dati storici per stazione ID:', stationId);
+                
+                // Richiesta all'API per i dati storici dal database
+                fetch(`/api/devices/${stationId}/historical-data?limit=20`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Errore HTTP: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        console.log('RISPOSTA API COMPLETA:', result);
+                        
+                        if (result.success && result.data) {
+                            console.log('DATI RICEVUTI DAL DB:', result.data);
+                            console.log('TIPI DI SENSORI RICEVUTI:', Object.keys(result.data));
+                            
+                            // Controlla quali dati sono disponibili per ogni sensore
+                            Object.keys(result.data).forEach(sensorType => {
+                                console.log(`DATI PER ${sensorType}:`, result.data[sensorType]);
+                                if (result.data[sensorType].values && result.data[sensorType].values.length > 0) {
+                                    console.log(`- Valori per ${sensorType}:`, result.data[sensorType].values);
+                                    console.log(`- Etichette per ${sensorType}:`, result.data[sensorType].labels);
+                                } else {
+                                    console.warn(`- NESSUN VALORE per ${sensorType}`);
+                                }
+                            });
+                            
+                            // Usa SOLO i dati dal database
+                            updateCharts(result.data);
+                        } else {
+                            console.error('Errore nella risposta API:', result.error || 'Errore sconosciuto');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Errore nel caricamento dei dati storici:', error);
+                    });
+            }
+            
+            // Funzione per aggiornare i mini-grafici con nuovi dati
+            function updateCharts(data) {
+                if (!data) {
+                    console.error('ERRORE: Nessun dato fornito a updateCharts');
+                    return;
+                }
+                
+                console.log('INIZIO AGGIORNAMENTO GRAFICI con dati:', data);
+                console.log('Grafici disponibili:', Object.keys(charts));
+                
+                // Mappatura nomi sensori per compatibilità
+                const sensorMap = {
+                    'temperature': 'temperature',
+                    'humidity': 'humidity',
+                    'gas': 'gas',
+                    'pressure': 'pressure',
+                    'uv': 'uv',
+                    'lux': 'lux',
+                    'soil-moisture': 'soil-moisture',
+                    'soilMoisture': 'soil-moisture',
+                    'rain': 'rain'
+                };
+                
+                // Per ogni tipo di sensore, aggiorna il rispettivo grafico
+                Object.keys(data).forEach(type => {
+                    // Utilizza la mappatura per garantire la compatibilità
+                    const chartType = sensorMap[type] || type;
+                    console.log(`AGGIORNAMENTO: Tipo originale '${type}' mappato a '${chartType}'`);
+                    
+                    if (charts[chartType]) {
+                        console.log(`GRAFICO TROVATO per ${chartType}`);
+                        
+                        if (data[type]) {
+                            const chartData = data[type];
+                            const labels = chartData.labels || [];
+                            const values = chartData.values || [];
+                            
+                            console.log(`ASSEGNAZIONE DATI a ${chartType}:`);
+                            console.log('- Labels:', labels);
+                            console.log('- Values:', values);
+                            
+                            charts[chartType].data.labels = labels;
+                            charts[chartType].data.datasets[0].data = values;
+                            console.log(`AGGIORNAMENTO GRAFICO ${chartType}`)
+                            charts[chartType].update('none'); // Aggiornamento senza animazione
+                        } else {
+                            console.error(`ERRORE: Dati mancanti per ${type}`);
+                        }
+                    } else {
+                        console.error(`ERRORE: Grafico non trovato per ${chartType}`);
+                    }
+                });
+            }
+            
+            // Inizializzazione dei grafici dopo il caricamento della pagina
+            initCharts();
+            
+            // Carica immediatamente i dati storici dal DB
+            loadHistoricalData();
             
             // Tenta di recuperare dati reali e poi ogni 30 secondi
             updateSensorData();
-            setInterval(updateSensorData, 30000);
+            setInterval(() => {
+                updateSensorData();
+                loadHistoricalData(); // Aggiorna anche i dati storici
+            }, 30000);
             
             // Fine inizializzazioni
         });
     </script>
+    
+    <!-- Ho incluso il banner dei cookie per il consenso GDPR -->
+    <%- include('./partials/cookie-banner.ejs') %>
 </body>
 </html>
