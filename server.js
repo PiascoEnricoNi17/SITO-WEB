@@ -27,7 +27,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production', // true in produzione (HTTPS)
+        secure: false, // opportuno perchè funzioni senza https
         maxAge: 24 * 60 * 60 * 1000, // Cookie valido per 24 ore
         httpOnly: true, // Previene l'accesso al cookie tramite JavaScript
         sameSite: 'strict' // Protegge da attacchi CSRF
